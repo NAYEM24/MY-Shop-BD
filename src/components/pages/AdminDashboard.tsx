@@ -3,11 +3,8 @@ import {
   LayoutDashboard,
   Package,
   ShoppingBag,
-  Users,
-  Tag,
   Star,
   Settings,
-  BarChart3,
   Plus,
   Edit2,
   Trash2,
@@ -21,6 +18,10 @@ import {
   Layers,
   Save,
   RotateCcw,
+  Sparkles,
+  ToggleLeft,
+  ToggleRight,
+  RefreshCw,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import {
@@ -47,12 +48,20 @@ export const AdminDashboard: React.FC = () => {
     formatPrice,
     isAdmin,
     setCurrentView,
+    resetToDemoData,
     showToast,
+    language,
   } = useShop();
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'products' | 'orders' | 'categories' | 'coupons' | 'reviews' | 'reports' | 'settings'
+    'overview' | 'products' | 'orders' | 'reviews' | 'settings'
   >('overview');
+
+  // Search & Filter States
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
 
   // Product modal state
   const [showProductModal, setShowProductModal] = useState(false);
@@ -70,11 +79,6 @@ export const AdminDashboard: React.FC = () => {
   const [pImage, setPImage] = useState('');
   const [pHas3D, setPHas3D] = useState(false);
   const [p3DType, setP3DType] = useState<'spectrometer' | 'earbuds' | 'smartwatch'>('spectrometer');
-
-  // Order fulfillment edit state
-  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
-  const [carrierName, setCarrierName] = useState('Pathao Logistics');
-  const [trackingNumber, setTrackingNumber] = useState('');
 
   // Settings form state
   const [settingsForm, setSettingsForm] = useState(storeSettings);
@@ -101,6 +105,42 @@ export const AdminDashboard: React.FC = () => {
     );
   }
 
+  // Filtered Orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const matchesSearch =
+        !orderSearchQuery ||
+        o.orderNumber.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+        o.shippingAddress.fullName.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+        o.userPhone.includes(orderSearchQuery) ||
+        (o.paymentDetails?.transactionId && o.paymentDetails.transactionId.toLowerCase().includes(orderSearchQuery.toLowerCase()));
+
+      const matchesStatus =
+        orderStatusFilter === 'all' ||
+        (orderStatusFilter === 'pending' && (o.fulfillmentStatus === 'pending_payment' || o.paymentStatus === 'pending')) ||
+        (orderStatusFilter === 'paid' && o.paymentStatus === 'paid') ||
+        (orderStatusFilter === 'processing' && o.fulfillmentStatus === 'processing') ||
+        (orderStatusFilter === 'shipped' && o.fulfillmentStatus === 'shipped') ||
+        (orderStatusFilter === 'delivered' && o.fulfillmentStatus === 'delivered');
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, orderSearchQuery, orderStatusFilter]);
+
+  // Filtered Products
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch =
+        !productSearchQuery ||
+        p.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+        p.sku.toLowerCase().includes(productSearchQuery.toLowerCase());
+
+      const matchesCat = productCategoryFilter === 'all' || p.category === productCategoryFilter;
+
+      return matchesSearch && matchesCat;
+    });
+  }, [products, productSearchQuery, productCategoryFilter]);
+
   // Dashboard Overview Metrics
   const totalOrders = orders.length;
   const verifiedSales = orders
@@ -118,11 +158,12 @@ export const AdminDashboard: React.FC = () => {
     setPType('physical');
     setPPrice(1500);
     setPSalePrice(undefined);
-    setPSku(`MSBD-SKU-${Math.floor(100 + Math.random() * 900)}`);
+    setPSku('MSBD-PROD-' + Math.floor(100 + Math.random() * 900));
     setPStock(25);
     setPDescription('');
-    setPImage('https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80');
+    setPImage('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80');
     setPHas3D(false);
+    setP3DType('spectrometer');
     setShowProductModal(true);
   };
 
@@ -136,21 +177,16 @@ export const AdminDashboard: React.FC = () => {
     setPSku(product.sku);
     setPStock(product.stock);
     setPDescription(product.description);
-    setPImage(product.images[0] || '');
-    setPHas3D(Boolean(product.has3DModel));
+    setPImage(product.images[0]);
+    setPHas3D(!!product.has3DModel);
     setP3DType(product.model3DType || 'spectrometer');
     setShowProductModal(true);
   };
 
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pName.trim()) {
-      showToast('Product name is required', 'error');
-      return;
-    }
-
-    const slug = pName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     const now = new Date().toISOString();
+    const slug = pName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     if (editingProduct) {
       updateProduct({
@@ -159,11 +195,11 @@ export const AdminDashboard: React.FC = () => {
         category: pCategory,
         type: pType,
         regularPrice: pPrice,
-        salePrice: pSalePrice,
+        salePrice: pSalePrice || undefined,
         sku: pSku,
-        stock: pStock,
+        stock: pType === 'physical' ? pStock : 9999,
         description: pDescription,
-        images: [pImage],
+        images: [pImage || editingProduct.images[0]],
         has3DModel: pHas3D,
         model3DType: pHas3D ? p3DType : undefined,
         updatedAt: now,
@@ -173,30 +209,27 @@ export const AdminDashboard: React.FC = () => {
         id: 'prod_' + Date.now().toString(),
         slug,
         name: pName,
-        category: pCategory,
-        subcategory: pCategory,
+        description: pDescription,
         type: pType,
+        category: pCategory,
         regularPrice: pPrice,
-        salePrice: pSalePrice,
+        salePrice: pSalePrice || undefined,
         sku: pSku,
         stock: pType === 'physical' ? pStock : 9999,
-        description: pDescription,
-        images: [pImage],
         status: 'active',
-        featured: false,
-        tags: [pCategory, pType],
+        featured: true,
+        images: [pImage],
         rating: 5.0,
         reviewCount: 0,
+        tags: [pCategory, pType, 'new'],
         has3DModel: pHas3D,
         model3DType: pHas3D ? p3DType : undefined,
         digitalMetadata:
           pType === 'digital'
             ? {
                 fileId: 'file_' + Date.now().toString(),
-                fileName: `${slug}_official.pdf`,
-                fileSizeBytes: 12500000,
-                mimeType: 'application/pdf',
-                version: '1.0',
+                fileName: `${pName}.pdf`,
+                fileSizeFormatted: '14.2 MB',
                 downloadLimit: 5,
                 storagePath: `protected/digital/${slug}.pdf`,
               }
@@ -207,6 +240,50 @@ export const AdminDashboard: React.FC = () => {
     }
 
     setShowProductModal(false);
+  };
+
+  // Quick 1-click status actions
+  const handleQuickMarkPaid = (orderId: string) => {
+    updateOrderStatus(orderId, 'processing', 'paid');
+    showToast('Order marked as PAID and moved to Processing.', 'success');
+  };
+
+  const handleQuickShip = (orderId: string) => {
+    const trackingCode = `PTH-BD-${Math.floor(100000 + Math.random() * 900000)}`;
+    updateOrderStatus(orderId, 'shipped', 'paid');
+    showToast(`Order dispatched via Pathao Courier! Tracking: ${trackingCode}`, 'success');
+  };
+
+  const handleQuickDeliver = (orderId: string) => {
+    updateOrderStatus(orderId, 'delivered', 'paid');
+    showToast('Order marked as successfully DELIVERED!', 'success');
+  };
+
+  const handleQuickCancel = (orderId: string) => {
+    if (confirm('Cancel this order?')) {
+      updateOrderStatus(orderId, 'cancelled');
+      showToast('Order cancelled.', 'info');
+    }
+  };
+
+  // Quick stock adjuster
+  const handleStockAdjust = (product: Product, delta: number) => {
+    const newStock = Math.max(0, product.stock + delta);
+    updateProduct({ ...product, stock: newStock });
+    showToast(`Stock for "${product.name}" updated to ${newStock}`, 'info');
+  };
+
+  // Toggle Test Mode
+  const handleToggleTestMode = () => {
+    const updated = !storeSettings.isPaymentTestMode;
+    updateStoreSettings({ isPaymentTestMode: updated });
+    setSettingsForm((prev) => ({ ...prev, isPaymentTestMode: updated }));
+    showToast(
+      updated
+        ? 'bKash/Nagad Test Mode ACTIVATED (Simulated transactions allowed)'
+        : 'LIVE Payment Mode ACTIVATED (Real merchant API verification required)',
+      'info'
+    );
   };
 
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -231,48 +308,86 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Top Banner */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800 shadow-md">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      {/* 1. Top Admin Banner with Quick Switchers */}
+      <div className="bg-slate-900 text-white rounded-3xl p-5 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-5 border border-slate-800 shadow-md">
         <div>
-          <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-semibold mb-2">
+          <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-0.5 rounded-full text-xs font-semibold mb-2">
             <Lock className="w-3.5 h-3.5" />
-            <span>Store Administrator Console</span>
+            <span>Store Administrator Portal</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">MY SHOP BD Management</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Real-time fulfillment, inventory audits, bKash & Nagad configuration, and report exports.
+            Real-time fulfillment, 1-click order updates, inventory controls, and payment test settings.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        {/* Quick Top Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Test Mode Switcher */}
+          <button
+            type="button"
+            onClick={handleToggleTestMode}
+            className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center space-x-1.5 transition-all ${
+              storeSettings.isPaymentTestMode
+                ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20'
+                : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20'
+            }`}
+            title="Toggle between Test Mode and Live Mode"
+          >
+            {storeSettings.isPaymentTestMode ? (
+              <ToggleRight className="w-4 h-4 text-amber-400" />
+            ) : (
+              <ToggleLeft className="w-4 h-4 text-emerald-400" />
+            )}
+            <span>{storeSettings.isPaymentTestMode ? 'Test Mode: ON' : 'Live Mode: ON'}</span>
+          </button>
+
+          {/* Reset Demo Data Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('Restore default products, categories and sample orders?')) {
+                resetToDemoData();
+              }
+            }}
+            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 flex items-center space-x-1.5"
+            title="Restore fresh demo catalog and orders"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset Demo</span>
+          </button>
+
+          {/* Add Product Button */}
           <button
             type="button"
             onClick={openAddProductModal}
-            className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-sm transition-all"
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-sm transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Add New Product</span>
+            <span>Add Product</span>
           </button>
+
+          {/* Export CSV Button */}
           <button
             type="button"
             onClick={exportOrdersCSV}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl flex items-center space-x-1.5 border border-slate-700 transition-colors"
+            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl flex items-center space-x-1.5 border border-slate-700 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span>Export CSV</span>
+            <span className="hidden sm:inline">Export</span>
           </button>
         </div>
       </div>
 
-      {/* Admin Tab Navigation Bar */}
-      <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs font-semibold text-slate-600">
+      {/* 2. Admin Navigation Tabs (Scrollable on Mobile) */}
+      <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs font-semibold text-slate-600 no-scrollbar">
         {[
           { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-          { key: 'products', label: 'Products', icon: Package },
-          { key: 'orders', label: 'Orders & Shipping', icon: ShoppingBag },
-          { key: 'reviews', label: 'Reviews Moderation', icon: Star },
-          { key: 'settings', label: 'Store & Payment Settings', icon: Settings },
+          { key: 'orders', label: `Orders (${orders.length})`, icon: ShoppingBag },
+          { key: 'products', label: `Products (${products.length})`, icon: Package },
+          { key: 'reviews', label: `Reviews (${reviews.length})`, icon: Star },
+          { key: 'settings', label: 'Settings & Shipping', icon: Settings },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
@@ -280,10 +395,10 @@ export const AdminDashboard: React.FC = () => {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key as any)}
-              className={`px-4 py-2 rounded-xl flex items-center space-x-2 transition-all flex-shrink-0 ${
+              className={`px-4 py-2.5 rounded-xl flex items-center space-x-2 transition-all flex-shrink-0 ${
                 activeTab === tab.key
                   ? 'bg-slate-900 text-white shadow-xs'
-                  : 'hover:bg-slate-100 text-slate-700'
+                  : 'hover:bg-slate-100 text-slate-700 bg-white border border-slate-200/60'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -295,57 +410,80 @@ export const AdminDashboard: React.FC = () => {
 
       {/* TAB 1: OVERVIEW METRICS */}
       {activeTab === 'overview' && (
-        <div className="space-y-8">
-          {/* 4 Metrics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-              <span className="text-xs font-semibold text-slate-500">Total Verified Sales</span>
-              <div className="text-2xl font-extrabold text-slate-900 font-mono">
+        <div className="space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Total Orders
+              </span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono mt-1 block">
+                {totalOrders}
+              </span>
+              <span className="text-[11px] text-teal-600 font-semibold block pt-1">
+                Across Bangladesh
+              </span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Verified Sales
+              </span>
+              <span className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono mt-1 block">
                 {formatPrice(verifiedSales)}
-              </div>
+              </span>
               <span className="text-[11px] text-emerald-600 font-semibold block pt-1">
-                From paid bKash, Nagad & orders
+                Paid Orders
               </span>
             </div>
 
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-              <span className="text-xs font-semibold text-slate-500">Total Orders Placed</span>
-              <div className="text-2xl font-extrabold text-slate-900 font-mono">{totalOrders}</div>
-              <span className="text-[11px] text-slate-500 block pt-1">Across all 8 divisions</span>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-              <span className="text-xs font-semibold text-slate-500">Pending Fulfillment</span>
-              <div className="text-2xl font-extrabold text-amber-600 font-mono">{pendingOrders}</div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Pending Action
+              </span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono mt-1 block">
+                {pendingOrders}
+              </span>
               <span className="text-[11px] text-amber-700 font-semibold block pt-1">
-                Awaiting packing / courier pickup
+                Fulfillment queue
               </span>
             </div>
 
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-              <span className="text-xs font-semibold text-slate-500">Low Stock Alerts (&le;5)</span>
-              <div className="text-2xl font-extrabold text-rose-600 font-mono">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Low Stock Alerts
+              </span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-rose-600 font-mono mt-1 block">
                 {lowStockProducts.length}
-              </div>
+              </span>
               <span className="text-[11px] text-rose-600 font-semibold block pt-1">
-                Restock required soon
+                Restock required
               </span>
             </div>
           </div>
 
           {/* Recent Orders Overview */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
-            <h3 className="text-base font-bold text-slate-900">Recent Customer Orders</h3>
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900">Recent Customer Orders</h3>
+              <button
+                type="button"
+                onClick={() => setActiveTab('orders')}
+                className="text-xs text-teal-600 font-bold hover:underline"
+              >
+                View & Manage All Orders →
+              </button>
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[600px]">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px]">
-                    <th className="py-2.5">Order</th>
+                    <th className="py-2.5">Order Code</th>
                     <th className="py-2.5">Date</th>
-                    <th className="py-2.5">Customer</th>
+                    <th className="py-2.5">Customer & Location</th>
                     <th className="py-2.5">Total</th>
                     <th className="py-2.5">Payment</th>
-                    <th className="py-2.5">Fulfillment</th>
+                    <th className="py-2.5">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -353,7 +491,9 @@ export const AdminDashboard: React.FC = () => {
                     <tr key={ord.id} className="hover:bg-slate-50">
                       <td className="py-3 font-mono font-bold text-slate-900">{ord.orderNumber}</td>
                       <td className="py-3 text-slate-500">{new Date(ord.createdAt).toLocaleDateString()}</td>
-                      <td className="py-3 font-medium text-slate-800">{ord.shippingAddress.fullName}</td>
+                      <td className="py-3 font-medium text-slate-800">
+                        {ord.shippingAddress.fullName} ({ord.shippingAddress.division})
+                      </td>
                       <td className="py-3 font-mono font-bold text-slate-900">{formatPrice(ord.totalAmount)}</td>
                       <td className="py-3 uppercase text-[10px] font-bold text-slate-600">
                         {ord.paymentMethod} ({ord.paymentStatus})
@@ -372,42 +512,235 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: PRODUCTS MANAGEMENT */}
+      {/* TAB 2: ORDERS MANAGEMENT WITH 1-CLICK FAST ACTIONS */}
+      {activeTab === 'orders' && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Order Management & Dispatch ({filteredOrders.length})
+              </h3>
+              <p className="text-xs text-slate-400">
+                1-click status actions to verify bKash/Nagad payments and dispatch packages.
+              </p>
+            </div>
+
+            {/* Order Search Box */}
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Search by name, phone, order#..."
+                value={orderSearchQuery}
+                onChange={(e) => setOrderSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-slate-900"
+              />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
+          {/* Status Filter Pills */}
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 text-xs font-semibold">
+            {[
+              { id: 'all', label: 'All Orders' },
+              { id: 'pending', label: 'Pending' },
+              { id: 'paid', label: 'Paid' },
+              { id: 'processing', label: 'Processing' },
+              { id: 'shipped', label: 'Shipped' },
+              { id: 'delivered', label: 'Delivered' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setOrderStatusFilter(f.id)}
+                className={`px-3 py-1 rounded-xl whitespace-nowrap transition-colors ${
+                  orderStatusFilter === f.id
+                    ? 'bg-teal-600 text-white font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Orders List with 1-Click Action Buttons */}
+          <div className="space-y-4">
+            {filteredOrders.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                No orders match your filter criteria.
+              </div>
+            ) : (
+              filteredOrders.map((ord) => (
+                <div
+                  key={ord.id}
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3 text-xs hover:border-teal-500/40 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-extrabold text-sm text-slate-900">
+                          {ord.orderNumber}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                            ord.paymentStatus === 'paid'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          Payment: {ord.paymentStatus}
+                        </span>
+                        <span className="text-[10px] bg-slate-200 text-slate-800 font-bold px-2 py-0.5 rounded-full capitalize">
+                          {ord.fulfillmentStatus.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <p className="text-slate-600 mt-1">
+                        Customer: <strong>{ord.shippingAddress.fullName}</strong> • Phone:{' '}
+                        <strong>{ord.userPhone}</strong> • {ord.shippingAddress.streetAddress},{' '}
+                        {ord.shippingAddress.district}, {ord.shippingAddress.division}
+                      </p>
+                    </div>
+
+                    <div className="text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center">
+                      <span className="font-mono font-extrabold text-base text-slate-900">
+                        {formatPrice(ord.totalAmount)}
+                      </span>
+                      <span className="text-[10px] text-slate-500 uppercase font-semibold">
+                        {ord.paymentMethod} • {ord.items.length} item(s)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Order Items Preview */}
+                  <div className="flex flex-wrap gap-2 py-1">
+                    {ord.items.map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] text-slate-700 font-medium"
+                      >
+                        {item.productName} × {item.quantity} ({formatPrice(item.totalPrice)})
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* 1-Click Fast Actions */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200/50">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-500">Quick Actions:</span>
+
+                      {ord.paymentStatus !== 'paid' && (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickMarkPaid(ord.id)}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Mark Paid</span>
+                        </button>
+                      )}
+
+                      {ord.fulfillmentStatus !== 'shipped' && ord.fulfillmentStatus !== 'delivered' && (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickShip(ord.id)}
+                          className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                        >
+                          <Truck className="w-3 h-3" />
+                          <span>Ship (Pathao)</span>
+                        </button>
+                      )}
+
+                      {ord.fulfillmentStatus !== 'delivered' && (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickDeliver(ord.id)}
+                          className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                        >
+                          <Package className="w-3 h-3" />
+                          <span>Mark Delivered</span>
+                        </button>
+                      )}
+
+                      {ord.fulfillmentStatus !== 'cancelled' && (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickCancel(ord.id)}
+                          className="px-2.5 py-1 bg-slate-200 hover:bg-rose-100 hover:text-rose-700 text-slate-700 rounded-lg text-[11px] font-bold"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(ord.createdAt).toLocaleString('en-GB')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: PRODUCTS MANAGEMENT WITH FAST STOCK ADJUSTMENT */}
       {activeTab === 'products' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 className="text-base font-bold text-slate-900">All Products Catalog ({products.length})</h3>
-            <button
-              type="button"
-              onClick={openAddProductModal}
-              className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold flex items-center space-x-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Product</span>
-            </button>
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Products & Inventory Catalog ({filteredProducts.length})
+              </h3>
+              <p className="text-xs text-slate-400">
+                Adjust physical stock directly with + / - buttons or click edit.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <div className="relative w-48 sm:w-60">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={productSearchQuery}
+                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              </div>
+
+              <button
+                type="button"
+                onClick={openAddProductModal}
+                className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold flex items-center space-x-1 flex-shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>New</span>
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[700px]">
               <thead>
                 <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px]">
                   <th className="py-2.5">Product</th>
                   <th className="py-2.5">Type</th>
-                  <th className="py-2.5">SKU</th>
-                  <th className="py-2.5">Price</th>
-                  <th className="py-2.5">Stock</th>
+                  <th className="py-2.5">Price (BDT)</th>
+                  <th className="py-2.5">Stock Management</th>
                   <th className="py-2.5">3D Model</th>
                   <th className="py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {products.map((p) => (
+                {filteredProducts.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50">
                     <td className="py-3 flex items-center space-x-2.5">
                       <img src={p.images[0]} alt="" className="w-9 h-9 rounded-lg object-cover bg-slate-50" />
                       <div>
                         <span className="font-bold text-slate-900 block line-clamp-1">{p.name}</span>
-                        <span className="text-[10px] text-slate-400 capitalize">{p.category}</span>
+                        <span className="text-[10px] text-slate-400 capitalize">{p.category} • SKU: {p.sku}</span>
                       </div>
                     </td>
                     <td className="py-3 capitalize text-[11px] font-semibold">
@@ -415,27 +748,44 @@ export const AdminDashboard: React.FC = () => {
                         {p.type}
                       </span>
                     </td>
-                    <td className="py-3 font-mono text-slate-500">{p.sku}</td>
                     <td className="py-3 font-mono font-bold text-slate-900">
                       {formatPrice(p.salePrice ?? p.regularPrice)}
                     </td>
                     <td className="py-3">
                       {p.type === 'physical' ? (
-                        <span
-                          className={`font-mono font-bold ${
-                            p.stock <= 5 ? 'text-rose-600' : 'text-slate-800'
-                          }`}
-                        >
-                          {p.stock}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleStockAdjust(p, -1)}
+                            className="w-5 h-5 bg-slate-200 hover:bg-slate-300 rounded font-bold text-xs flex items-center justify-center text-slate-800"
+                            title="Decrease Stock"
+                          >
+                            -
+                          </button>
+                          <span
+                            className={`font-mono font-bold text-xs min-w-[24px] text-center ${
+                              p.stock <= 5 ? 'text-rose-600' : 'text-slate-800'
+                            }`}
+                          >
+                            {p.stock}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleStockAdjust(p, 1)}
+                            className="w-5 h-5 bg-slate-200 hover:bg-slate-300 rounded font-bold text-xs flex items-center justify-center text-slate-800"
+                            title="Increase Stock"
+                          >
+                            +
+                          </button>
+                        </div>
                       ) : (
-                        <span className="text-slate-400 font-mono">Digital</span>
+                        <span className="text-slate-400 font-mono">Instant Digital</span>
                       )}
                     </td>
                     <td className="py-3">
                       {p.has3DModel ? (
                         <span className="bg-teal-100 text-teal-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          Enabled
+                          3D Active
                         </span>
                       ) : (
                         <span className="text-slate-400 text-[10px]">None</span>
@@ -453,7 +803,7 @@ export const AdminDashboard: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                          if (confirm(`Delete "${p.name}"?`)) {
                             deleteProduct(p.id);
                           }
                         }}
@@ -471,81 +821,9 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: ORDERS & SHIPPING FULFILLMENT */}
-      {activeTab === 'orders' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <h3 className="text-base font-bold text-slate-900 pb-3 border-b border-slate-100">
-            Order Fulfillment & Tracking
-          </h3>
-
-          <div className="space-y-4">
-            {orders.map((ord) => (
-              <div
-                key={ord.id}
-                className="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/50 space-y-3 text-xs"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
-                  <div>
-                    <span className="font-mono font-extrabold text-sm text-slate-900 block">
-                      {ord.orderNumber}
-                    </span>
-                    <span className="text-slate-500">
-                      Customer: <strong>{ord.shippingAddress.fullName}</strong> • {ord.shippingAddress.district},{' '}
-                      {ord.shippingAddress.division} ({ord.userPhone})
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <span className="font-mono font-extrabold text-sm text-slate-900">
-                      {formatPrice(ord.totalAmount)}
-                    </span>
-                    <span className="bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                      {ord.paymentMethod} ({ord.paymentStatus})
-                    </span>
-                  </div>
-                </div>
-
-                {/* Fulfillment Status Controls */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-slate-600 font-semibold">Status:</span>
-                    <select
-                      value={ord.fulfillmentStatus}
-                      onChange={(e) => updateOrderStatus(ord.id, e.target.value as FulfillmentStatus)}
-                      className="p-1.5 bg-white border border-slate-300 rounded-xl font-semibold text-slate-800"
-                    >
-                      <option value="pending_payment">Pending Payment</option>
-                      <option value="paid">Paid</option>
-                      <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="refunded">Refunded</option>
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => updateOrderStatus(ord.id, ord.fulfillmentStatus, 'paid')}
-                      className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold"
-                    >
-                      Mark Paid
-                    </button>
-                  </div>
-
-                  {/* Audit Trail Note */}
-                  <span className="text-[10px] text-slate-400">
-                    Latest event: {ord.auditLogs[ord.auditLogs.length - 1]?.action || 'Created'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* TAB 4: REVIEWS MODERATION */}
       {activeTab === 'reviews' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
           <h3 className="text-base font-bold text-slate-900 pb-3 border-b border-slate-100">
             Customer Reviews Moderation ({reviews.length})
           </h3>
@@ -595,7 +873,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* TAB 5: STORE & PAYMENT SETTINGS */}
       {activeTab === 'settings' && (
-        <form onSubmit={handleSaveSettings} className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6 text-xs">
+        <form onSubmit={handleSaveSettings} className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-6 text-xs">
           <h3 className="text-base font-bold text-slate-900 pb-3 border-b border-slate-100">
             Store, Delivery & Payment Gateway Configuration
           </h3>
@@ -627,7 +905,7 @@ export const AdminDashboard: React.FC = () => {
                 type="number"
                 value={settingsForm.insideDhakaShippingFee}
                 onChange={(e) =>
-                  setSettingsForm({ ...settingsForm, insideDhakaShippingFee: parseInt(e.target.value) })
+                  setSettingsForm({ ...settingsForm, insideDhakaShippingFee: parseInt(e.target.value) || 0 })
                 }
                 className="w-full p-2.5 bg-slate-50 border rounded-xl font-mono"
               />
@@ -639,7 +917,7 @@ export const AdminDashboard: React.FC = () => {
                 type="number"
                 value={settingsForm.outsideDhakaShippingFee}
                 onChange={(e) =>
-                  setSettingsForm({ ...settingsForm, outsideDhakaShippingFee: parseInt(e.target.value) })
+                  setSettingsForm({ ...settingsForm, outsideDhakaShippingFee: parseInt(e.target.value) || 0 })
                 }
                 className="w-full p-2.5 bg-slate-50 border rounded-xl font-mono"
               />
@@ -651,7 +929,7 @@ export const AdminDashboard: React.FC = () => {
                 type="number"
                 value={settingsForm.freeShippingThreshold}
                 onChange={(e) =>
-                  setSettingsForm({ ...settingsForm, freeShippingThreshold: parseInt(e.target.value) })
+                  setSettingsForm({ ...settingsForm, freeShippingThreshold: parseInt(e.target.value) || 0 })
                 }
                 className="w-full p-2.5 bg-slate-50 border rounded-xl font-mono"
               />
@@ -752,7 +1030,7 @@ export const AdminDashboard: React.FC = () => {
                   className="w-full p-2.5 bg-slate-50 border rounded-xl"
                 >
                   <option value="physical">Physical Product</option>
-                  <option value="digital">Digital Product (PDF/Code)</option>
+                  <option value="digital">Digital Product (Downloadable PDF)</option>
                 </select>
               </div>
 
@@ -762,20 +1040,19 @@ export const AdminDashboard: React.FC = () => {
                   type="number"
                   required
                   value={pPrice}
-                  onChange={(e) => setPPrice(parseInt(e.target.value))}
+                  onChange={(e) => setPPrice(parseInt(e.target.value) || 0)}
                   className="w-full p-2.5 bg-slate-50 border rounded-xl font-mono"
                 />
               </div>
 
               <div>
-                <label className="font-semibold block mb-1">Sale Price (Optional BDT)</label>
+                <label className="font-semibold block mb-1">Sale Price (BDT, Optional)</label>
                 <input
                   type="number"
                   value={pSalePrice || ''}
-                  onChange={(e) =>
-                    setPSalePrice(e.target.value ? parseInt(e.target.value) : undefined)
-                  }
+                  onChange={(e) => setPSalePrice(e.target.value ? parseInt(e.target.value) : undefined)}
                   className="w-full p-2.5 bg-slate-50 border rounded-xl font-mono"
+                  placeholder="Leave empty for regular price"
                 />
               </div>
 
@@ -795,8 +1072,8 @@ export const AdminDashboard: React.FC = () => {
                 <input
                   type="number"
                   disabled={pType === 'digital'}
-                  value={pStock}
-                  onChange={(e) => setPStock(parseInt(e.target.value))}
+                  value={pType === 'digital' ? 9999 : pStock}
+                  onChange={(e) => setPStock(parseInt(e.target.value) || 0)}
                   className="w-full p-2.5 bg-slate-50 border rounded-xl font-mono disabled:opacity-50"
                 />
               </div>
@@ -808,7 +1085,7 @@ export const AdminDashboard: React.FC = () => {
                   required
                   value={pImage}
                   onChange={(e) => setPImage(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                  className="w-full p-2.5 bg-slate-50 border rounded-xl font-mono text-[11px]"
                 />
               </div>
 
@@ -819,32 +1096,35 @@ export const AdminDashboard: React.FC = () => {
                   value={pDescription}
                   onChange={(e) => setPDescription(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                  placeholder="Detailed product specifications..."
                 />
               </div>
 
-              {/* 3D Model Configuration */}
-              <div className="sm:col-span-2 flex items-center space-x-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <label className="flex items-center space-x-2 cursor-pointer">
+              <div className="sm:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
+                    id="has3DCheck"
                     checked={pHas3D}
                     onChange={(e) => setPHas3D(e.target.checked)}
-                    className="rounded border-slate-300 text-teal-600"
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                   />
-                  <span className="font-bold text-slate-800">Enable Three.js 3D Inspector</span>
-                </label>
+                  <label htmlFor="has3DCheck" className="font-semibold text-slate-800 cursor-pointer">
+                    Enable Three.js 3D Interactive Model Inspection
+                  </label>
+                </div>
 
                 {pHas3D && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-slate-500">Model Type:</span>
+                  <div>
+                    <label className="font-semibold block mb-1">3D Composite Model Template</label>
                     <select
                       value={p3DType}
                       onChange={(e) => setP3DType(e.target.value as any)}
-                      className="p-1.5 bg-white border rounded-lg text-xs"
+                      className="w-full p-2 bg-white border rounded-xl font-medium"
                     >
-                      <option value="spectrometer">Lab UV-Vis Spectrometer</option>
-                      <option value="earbuds">ANC Wireless Earbuds</option>
-                      <option value="smartwatch">AMOLED Smartwatch</option>
+                      <option value="spectrometer">Apex UV-Vis Spectrometer (Lab Equipment)</option>
+                      <option value="earbuds">SoundPulse ANC Wireless Earbuds (Audio Gadget)</option>
+                      <option value="smartwatch">Apex Horizon AMOLED Smartwatch (Wearable)</option>
                     </select>
                   </div>
                 )}
@@ -855,15 +1135,15 @@ export const AdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowProductModal(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-4 py-2 border rounded-xl text-slate-600 hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-teal-600 text-white font-bold rounded-xl shadow-sm"
+                className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl shadow-md"
               >
-                {editingProduct ? 'Save Changes' : 'Publish Product'}
+                {editingProduct ? 'Save Changes' : 'Create Product'}
               </button>
             </div>
           </form>

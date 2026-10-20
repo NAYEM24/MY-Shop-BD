@@ -33,6 +33,7 @@ import {
   firebaseLogout,
   getCachedAccessToken,
 } from '../services/firebase.ts';
+import { translations, Translations } from '../utils/translations.ts';
 
 export type CurrentView =
   | 'home'
@@ -92,7 +93,9 @@ interface ShopContextType {
   // Language & Currency
   language: 'en' | 'bn';
   setLanguage: (lang: 'en' | 'bn') => void;
+  t: Translations;
   formatPrice: (amount: number) => string;
+  resetToDemoData: () => void;
 
   // Products & Categories
   products: Product[];
@@ -183,7 +186,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToasts((prev) => [...prev, { id, type, message }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4500);
+    }, 3200);
   };
 
   const dismissToast = (id: string) => {
@@ -719,10 +722,29 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('Store settings saved successfully.', 'success');
   };
 
-  // Currency Formatter: Tk BDT
-  const formatPrice = (amount: number): string => {
-    return `Tk ${Math.round(amount).toLocaleString('en-US')}`;
+  const resetToDemoData = () => {
+    setProducts(DEFAULT_PRODUCTS);
+    setCategories(DEFAULT_CATEGORIES);
+    setCart([]);
+    setWishlist([]);
+    setStoreSettings(DEFAULT_SETTINGS);
+    localStorage.removeItem(STORAGE_KEY_PRODUCTS);
+    localStorage.removeItem(STORAGE_KEY_CART);
+    localStorage.removeItem(STORAGE_KEY_WISHLIST);
+    localStorage.removeItem(STORAGE_KEY_SETTINGS);
+    showToast(language === 'bn' ? 'ডেমো ডেটা সফলভাবে রিস্টোর হয়েছে।' : 'Demo data restored to defaults!', 'success');
   };
+
+  // Currency Formatter: Tk BDT with Bangla numeral support
+  const formatPrice = (amount: number): string => {
+    const rounded = Math.round(amount);
+    if (language === 'bn') {
+      return `৳ ${rounded.toLocaleString('bn-BD')}`;
+    }
+    return `Tk ${rounded.toLocaleString('en-US')}`;
+  };
+
+  const t = translations[language];
 
   return (
     <ShopContext.Provider
@@ -739,7 +761,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSearchQuery,
         language,
         setLanguage,
+        t,
         formatPrice,
+        resetToDemoData,
         products,
         categories,
         setProducts,

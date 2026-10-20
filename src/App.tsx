@@ -3,6 +3,7 @@ import { ShopProvider, useShop } from './context/ShopContext.tsx';
 import { Header } from './components/layout/Header.tsx';
 import { Footer } from './components/layout/Footer.tsx';
 import { NotificationToast } from './components/common/NotificationToast.tsx';
+import { MobileBottomNav } from './components/common/MobileBottomNav.tsx';
 
 // Pages
 import { HomePage } from './components/pages/HomePage.tsx';
@@ -97,10 +98,11 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-teal-500 selection:text-white pb-20 md:pb-0">
       <Header />
       <main className="flex-1">{renderCurrentView()}</main>
       <Footer />
+      <MobileBottomNav />
       <NotificationToast />
     </div>
   );

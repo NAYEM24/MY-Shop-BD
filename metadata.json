@@ -1,0 +1,6 @@
+{
+  "name": "MY SHOP BD",
+  "description": "Premium modern Bangladeshi e-commerce platform featuring physical and digital products, 3D interactive product viewer, science publications and lab gear, bKash & Nagad checkout, and Google Drive delivery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

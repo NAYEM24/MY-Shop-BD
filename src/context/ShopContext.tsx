@@ -13,6 +13,7 @@ import {
   ShippingAddress,
   StoreSettings,
   UserProfile,
+  BannerSlide,
 } from '../types/index.ts';
 import {
   DEFAULT_CATEGORIES,
@@ -20,6 +21,7 @@ import {
   DEFAULT_COUPONS,
   DEFAULT_REVIEWS,
   DEFAULT_SETTINGS,
+  INITIAL_DEFAULT_BANNERS,
 } from './initialData.ts';
 import {
   calculateOrderSummary,
@@ -152,6 +154,13 @@ interface ShopContextType {
   storeSettings: StoreSettings;
   updateStoreSettings: (newSettings: Partial<StoreSettings>) => void;
 
+  // Banners Carousel
+  banners: BannerSlide[];
+  addBanner: (banner: BannerSlide) => void;
+  updateBanner: (banner: BannerSlide) => void;
+  deleteBanner: (bannerId: string) => void;
+  reorderBanners: (banners: BannerSlide[]) => void;
+
   // Toast Notifications
   toasts: ToastMessage[];
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -168,6 +177,7 @@ const STORAGE_KEY_SETTINGS = 'myshopbd_settings_v1';
 const STORAGE_KEY_USER = 'myshopbd_user_v1';
 const STORAGE_KEY_ENTITLEMENTS = 'myshopbd_entitlements_v1';
 const STORAGE_KEY_REVIEWS = 'myshopbd_reviews_v1';
+const STORAGE_KEY_BANNERS = 'myshopbd_banners_v1';
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation State
@@ -229,6 +239,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
     const cached = localStorage.getItem(STORAGE_KEY_SETTINGS);
     return cached ? JSON.parse(cached) : DEFAULT_SETTINGS;
+  });
+
+  const [banners, setBanners] = useState<BannerSlide[]>(() => {
+    const cached = localStorage.getItem(STORAGE_KEY_BANNERS);
+    return cached ? JSON.parse(cached) : INITIAL_DEFAULT_BANNERS;
   });
 
   const [user, setUser] = useState<UserProfile | null>(() => {
@@ -304,6 +319,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(storeSettings));
   }, [storeSettings]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_BANNERS, JSON.stringify(banners));
+  }, [banners]);
 
   useEffect(() => {
     if (user) {
@@ -722,16 +741,39 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('Store settings saved successfully.', 'success');
   };
 
+  // Banner Management
+  const addBanner = (banner: BannerSlide) => {
+    setBanners((prev) => [...prev, banner]);
+    showToast(language === 'bn' ? 'নতুন ব্যানার যোগ হয়েছে!' : 'New banner added!', 'success');
+  };
+
+  const updateBanner = (updated: BannerSlide) => {
+    setBanners((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    showToast(language === 'bn' ? 'ব্যানার আপডেট সম্পন্ন হয়েছে!' : 'Banner updated!', 'success');
+  };
+
+  const deleteBanner = (bannerId: string) => {
+    setBanners((prev) => prev.filter((b) => b.id !== bannerId));
+    showToast(language === 'bn' ? 'ব্যানার মুছে ফেলা হয়েছে!' : 'Banner deleted.', 'info');
+  };
+
+  const reorderBanners = (newBanners: BannerSlide[]) => {
+    setBanners(newBanners);
+    showToast(language === 'bn' ? 'ব্যানার ক্রম সাজানো হয়েছে!' : 'Banners reordered!', 'info');
+  };
+
   const resetToDemoData = () => {
     setProducts(DEFAULT_PRODUCTS);
     setCategories(DEFAULT_CATEGORIES);
     setCart([]);
     setWishlist([]);
     setStoreSettings(DEFAULT_SETTINGS);
+    setBanners(INITIAL_DEFAULT_BANNERS);
     localStorage.removeItem(STORAGE_KEY_PRODUCTS);
     localStorage.removeItem(STORAGE_KEY_CART);
     localStorage.removeItem(STORAGE_KEY_WISHLIST);
     localStorage.removeItem(STORAGE_KEY_SETTINGS);
+    localStorage.removeItem(STORAGE_KEY_BANNERS);
     showToast(language === 'bn' ? 'ডেমো ডেটা সফলভাবে রিস্টোর হয়েছে।' : 'Demo data restored to defaults!', 'success');
   };
 
@@ -803,6 +845,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateProfile,
         storeSettings,
         updateStoreSettings,
+        banners,
+        addBanner,
+        updateBanner,
+        deleteBanner,
+        reorderBanners,
         toasts,
         showToast,
         dismissToast,

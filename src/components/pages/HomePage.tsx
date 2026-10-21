@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   ArrowRight,
-  Sparkles,
   ShoppingBag,
   Star,
   CheckCircle2,
@@ -11,9 +10,13 @@ import {
   Tag,
   Copy,
   Check,
+  Truck,
+  CreditCard,
+  Zap,
+  ShieldCheck,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
-import { ProductViewer3D } from '../3d/ProductViewer3D.tsx';
+import { BannerSlider } from '../common/BannerSlider.tsx';
 
 export const HomePage: React.FC = () => {
   const {
@@ -62,79 +65,66 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12 sm:space-y-16 pb-16">
-      {/* 1. Hero Section (Responsive Mobile & Desktop) */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 text-white py-12 sm:py-20 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-[radial-gradient(#0d9488_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
+    <div className="space-y-10 sm:space-y-16 pb-16">
+      {/* 1. Dynamic Hero Banner Carousel (Customizable from Admin Panel) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6">
+        <BannerSlider />
 
-        <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Text Column */}
-          <div className="lg:col-span-7 space-y-4 sm:space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center space-x-2 bg-teal-500/10 border border-teal-500/30 text-teal-300 px-3 py-1 rounded-full text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-              <span>{language === 'bn' ? 'বিশ্বস্ত বাংলাদেশি ই-কমার্স' : 'Trusted Bangladeshi Shopping'}</span>
+        {/* Clean, Fast Feature Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mt-4 sm:mt-6">
+          <div className="flex items-center space-x-2.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-              {t.heroTitle1}{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-sky-300 to-emerald-300">
-                {t.heroHighlight}
-              </span>{' '}
-              {t.heroTitle2}
-            </h1>
-
-            <p className="text-sm sm:text-base text-slate-300 max-w-xl leading-relaxed mx-auto lg:mx-0">
-              {t.heroSubtitle}
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
-              <button
-                type="button"
-                onClick={() => setCurrentView('shop')}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-teal-500/20 active:scale-95 transition-all"
-              >
-                <ShoppingBag className="w-4 h-4" />
-                <span>{t.shopNow}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategorySlug('electronics');
-                  setCurrentView('category');
-                }}
-                className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 flex items-center justify-center space-x-2 transition-colors"
-              >
-                <Sparkles className="w-4 h-4 text-teal-400" />
-                <span>{language === 'bn' ? 'সেরা অফার ও পণ্যসমূহ' : 'Trending Collections'}</span>
-              </button>
-            </div>
-
-            {/* Trust Badges */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-3 text-xs text-slate-400">
-              <div className="flex items-center space-x-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                <span>{t.officialPayment}</span>
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                <span>{t.cashOnDelivery}</span>
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <CheckCircle2 className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                <span>{language === 'bn' ? 'সহজ রিটার্ন গ্যারান্টি' : '7-Day Return Guarantee'}</span>
-              </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                {language === 'bn' ? 'সারা দেশে ডেলিভারি' : 'Nationwide Shipping'}
+              </h4>
+              <p className="text-[10px] sm:text-xs text-slate-500">
+                {language === 'bn' ? 'ক্যাশ অন ডেলিভারি সহজ' : 'Cash on delivery available'}
+              </p>
             </div>
           </div>
 
-          {/* Right Column: 3D Product Interactive Preview */}
-          <div className="lg:col-span-5 hidden sm:block">
-            <div className="bg-slate-900/90 rounded-3xl p-2 border border-slate-800 shadow-2xl">
-              <ProductViewer3D
-                productType="spectrometer"
-                title={language === 'bn' ? 'অ্যাপেক্স ল্যাব স্পেকট্রোমিটার (থ্রি-ডি ভিউ)' : 'Apex Lab Spectrophotometer (3D)'}
-              />
+          <div className="flex items-center space-x-2.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                {language === 'bn' ? 'বিকাশ ও নগদ পেমেন্ট' : 'bKash & Nagad'}
+              </h4>
+              <p className="text-[10px] sm:text-xs text-slate-500">
+                {language === 'bn' ? '১০০% নিরাপদ চেকআউট' : '100% verified gateway'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                {language === 'bn' ? 'ইনস্ট্যান্ট ডাউনলোড' : 'Instant Downloads'}
+              </h4>
+              <p className="text-[10px] sm:text-xs text-slate-500">
+                {language === 'bn' ? 'ডিজিটাল ই-বুক ও ফাইল' : 'Google Drive sync support'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                {language === 'bn' ? '৭ দিনের রিপ্লেসমেন্ট' : '7-Day Return Policy'}
+              </h4>
+              <p className="text-[10px] sm:text-xs text-slate-500">
+                {language === 'bn' ? 'আসল পণ্যের নিশ্চয়তা' : 'Guaranteed satisfaction'}
+              </p>
             </div>
           </div>
         </div>

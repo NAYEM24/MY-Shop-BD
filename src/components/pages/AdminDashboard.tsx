@@ -22,6 +22,12 @@ import {
   ToggleLeft,
   ToggleRight,
   RefreshCw,
+  Image as ImageIcon,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import {
@@ -30,7 +36,10 @@ import {
   Product,
   ProductStatus,
   ProductType,
+  BannerSlide,
 } from '../../types/index.ts';
+import { INITIAL_DEFAULT_BANNERS } from '../../context/initialData.ts';
+import { BannerSlider } from '../common/BannerSlider.tsx';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -51,11 +60,184 @@ export const AdminDashboard: React.FC = () => {
     resetToDemoData,
     showToast,
     language,
+    banners,
+    addBanner,
+    updateBanner,
+    deleteBanner,
+    reorderBanners,
   } = useShop();
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'products' | 'orders' | 'reviews' | 'settings'
+    'overview' | 'products' | 'orders' | 'banners' | 'reviews' | 'settings'
   >('overview');
+
+  // Banner management state
+  const [showBannerModal, setShowBannerModal] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<BannerSlide | null>(null);
+
+  // Banner form state
+  const [bTitle, setBTitle] = useState('');
+  const [bTitleBn, setBTitleBn] = useState('');
+  const [bSubtitle, setBSubtitle] = useState('');
+  const [bSubtitleBn, setBSubtitleBn] = useState('');
+  const [bBadge, setBBadge] = useState('');
+  const [bBadgeBn, setBBadgeBn] = useState('');
+  const [bImage, setBImage] = useState('');
+  const [bButtonText, setBButtonText] = useState('Shop Now');
+  const [bButtonTextBn, setBButtonTextBn] = useState('এখনই দেখুন');
+  const [bLinkView, setBLinkView] = useState('category');
+  const [bLinkCategory, setBLinkCategory] = useState('electronics');
+  const [bOrder, setBOrder] = useState(1);
+  const [bIsActive, setBIsActive] = useState(true);
+
+  // Sample banner image presets for 1-click convenience
+  const BANNER_PRESETS = [
+    {
+      name: 'Electronics & Audio',
+      nameBn: 'স্মার্ট গ্যাজেট',
+      url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1600&q=80',
+      category: 'electronics',
+      badge: 'Special Eid Offer',
+      badgeBn: 'বিশেষ উৎসবের ছাড়',
+      title: 'Next-Gen Audio & Smart Tech',
+      titleBn: 'নেক্সট-জেন অডিও ও স্মার্ট গ্যাজেট',
+    },
+    {
+      name: 'Bangladeshi Heritage',
+      nameBn: 'ঐতিহ্যবাহী পোশাক',
+      url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1600&q=80',
+      category: 'heritage-fashion',
+      badge: 'Bangladeshi Heritage',
+      badgeBn: 'দেশীয় ঐতিহ্য',
+      title: 'Authentic Jamdani & Festive Wear',
+      titleBn: 'খাঁটি ঢাকাই জামদানি ও পাঞ্জাবি',
+    },
+    {
+      name: 'Bioscience Lab Gear',
+      nameBn: 'ল্যাব সরঞ্জাম',
+      url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1600&q=80',
+      category: 'science-lab',
+      badge: 'Science & Research',
+      badgeBn: 'বিজ্ঞান ও গবেষণা',
+      title: 'Precision Bioscience & Lab Gear',
+      titleBn: 'উন্নত বায়োসায়েন্স ও ল্যাব সরঞ্জাম',
+    },
+    {
+      name: 'Digital E-Books',
+      nameBn: 'ডিজিটাল ই-বুক',
+      url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1600&q=80',
+      category: 'digital-products',
+      badge: 'Instant Delivery',
+      badgeBn: 'তাৎক্ষণিক ডেলিভারি',
+      title: 'Digital E-Books & Developer Guides',
+      titleBn: 'ডিজিটাল ই-বুক ও স্টাডি গাইড',
+    },
+  ];
+
+  const openCreateBannerModal = () => {
+    setEditingBanner(null);
+    setBTitle('');
+    setBTitleBn('');
+    setBSubtitle('');
+    setBSubtitleBn('');
+    setBBadge('Special Eid Offer');
+    setBBadgeBn('বিশেষ উৎসবের অফার');
+    setBImage('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1600&q=80');
+    setBButtonText('Shop Collection');
+    setBButtonTextBn('এখনই কিনুন');
+    setBLinkView('category');
+    setBLinkCategory('electronics');
+    setBOrder(banners.length + 1);
+    setBIsActive(true);
+    setShowBannerModal(true);
+  };
+
+  const openEditBannerModal = (banner: BannerSlide) => {
+    setEditingBanner(banner);
+    setBTitle(banner.title);
+    setBTitleBn(banner.titleBn || '');
+    setBSubtitle(banner.subtitle || '');
+    setBSubtitleBn(banner.subtitleBn || '');
+    setBBadge(banner.badge || '');
+    setBBadgeBn(banner.badgeBn || '');
+    setBImage(banner.imageUrl);
+    setBButtonText(banner.buttonText || 'Shop Now');
+    setBButtonTextBn(banner.buttonTextBn || 'এখনই দেখুন');
+    setBLinkView(banner.linkView || 'category');
+    setBLinkCategory(banner.linkCategory || 'electronics');
+    setBOrder(banner.order || 1);
+    setBIsActive(banner.isActive);
+    setShowBannerModal(true);
+  };
+
+  const handleBannerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bImage.trim() || !bTitle.trim()) {
+      showToast('Please provide both banner title and image URL', 'error');
+      return;
+    }
+
+    if (editingBanner) {
+      updateBanner({
+        ...editingBanner,
+        title: bTitle.trim(),
+        titleBn: bTitleBn.trim() || undefined,
+        subtitle: bSubtitle.trim() || undefined,
+        subtitleBn: bSubtitleBn.trim() || undefined,
+        badge: bBadge.trim() || undefined,
+        badgeBn: bBadgeBn.trim() || undefined,
+        imageUrl: bImage.trim(),
+        buttonText: bButtonText.trim() || 'Shop Now',
+        buttonTextBn: bButtonTextBn.trim() || 'এখনই দেখুন',
+        linkView: bLinkView,
+        linkCategory: bLinkCategory,
+        order: Number(bOrder) || 1,
+        isActive: bIsActive,
+      });
+    } else {
+      addBanner({
+        id: 'banner_' + Date.now().toString(),
+        title: bTitle.trim(),
+        titleBn: bTitleBn.trim() || undefined,
+        subtitle: bSubtitle.trim() || undefined,
+        subtitleBn: bSubtitleBn.trim() || undefined,
+        badge: bBadge.trim() || undefined,
+        badgeBn: bBadgeBn.trim() || undefined,
+        imageUrl: bImage.trim(),
+        buttonText: bButtonText.trim() || 'Shop Now',
+        buttonTextBn: bButtonTextBn.trim() || 'এখনই দেখুন',
+        linkView: bLinkView,
+        linkCategory: bLinkCategory,
+        order: Number(bOrder) || (banners.length + 1),
+        isActive: bIsActive,
+      });
+    }
+
+    setShowBannerModal(false);
+  };
+
+  const handleToggleBannerActive = (banner: BannerSlide) => {
+    updateBanner({ ...banner, isActive: !banner.isActive });
+  };
+
+  const handleMoveBanner = (index: number, direction: 'up' | 'down') => {
+    const sorted = [...banners].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sorted.length) return;
+
+    const temp = sorted[index];
+    sorted[index] = sorted[targetIndex];
+    sorted[targetIndex] = temp;
+
+    // Reassign orders sequentially 1, 2, 3...
+    const reordered = sorted.map((b, i) => ({ ...b, order: i + 1 }));
+    reorderBanners(reordered);
+  };
+
+  const handleResetBanners = () => {
+    reorderBanners(INITIAL_DEFAULT_BANNERS);
+    showToast('Banners reset to original defaults.', 'success');
+  };
 
   // Search & Filter States
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
@@ -212,6 +394,7 @@ export const AdminDashboard: React.FC = () => {
         description: pDescription,
         type: pType,
         category: pCategory,
+        subcategory: 'General',
         regularPrice: pPrice,
         salePrice: pSalePrice || undefined,
         sku: pSku,
@@ -229,7 +412,9 @@ export const AdminDashboard: React.FC = () => {
             ? {
                 fileId: 'file_' + Date.now().toString(),
                 fileName: `${pName}.pdf`,
-                fileSizeFormatted: '14.2 MB',
+                fileSizeBytes: 14889779,
+                mimeType: 'application/pdf',
+                version: '1.0.0',
                 downloadLimit: 5,
                 storagePath: `protected/digital/${slug}.pdf`,
               }
@@ -358,6 +543,17 @@ export const AdminDashboard: React.FC = () => {
             <span className="hidden sm:inline">Reset Demo</span>
           </button>
 
+          {/* Add Banner Button */}
+          <button
+            type="button"
+            onClick={openCreateBannerModal}
+            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold text-xs rounded-xl flex items-center space-x-1.5 border border-slate-700 transition-all"
+            title="Add a new promotional banner slide"
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Banner</span>
+          </button>
+
           {/* Add Product Button */}
           <button
             type="button"
@@ -384,6 +580,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs font-semibold text-slate-600 no-scrollbar">
         {[
           { key: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { key: 'banners', label: `Banners / ব্যানার (${banners.length})`, icon: ImageIcon },
           { key: 'orders', label: `Orders (${orders.length})`, icon: ShoppingBag },
           { key: 'products', label: `Products (${products.length})`, icon: Package },
           { key: 'reviews', label: `Reviews (${reviews.length})`, icon: Star },
@@ -983,6 +1180,505 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </div>
         </form>
+      )}
+
+      {/* TAB: BANNERS SLIDER MANAGEMENT */}
+      {activeTab === 'banners' && (
+        <div className="space-y-6">
+          {/* Top Banner Control Header */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="p-1.5 rounded-lg bg-teal-50 text-teal-600">
+                  <ImageIcon className="w-5 h-5" />
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  {language === 'bn' ? 'হোমপেজ ব্যানার স্লাইডার' : 'Homepage Hero Banners'}
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                {language === 'bn'
+                  ? 'হোমপেজে যে ব্যানারগুলো ঘুরে ঘুরে ছবি প্রদর্শন করবে, তা এখান থেকে সহজে যোগ, এডিট বা অন/অফ করতে পারেন। আপনি যা দিবেন সাথে সাথে হোমপেজে শো করবে।'
+                  : 'Manage the sliding visual promotional banners rotating on your homepage. Add new images, edit titles, reorder sequence, and link them to categories.'}
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleResetBanners}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl flex items-center space-x-1.5 transition-colors"
+                title="Reset to default banner set"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? 'ডিফল্ট ব্যানার' : 'Reset Defaults'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={openCreateBannerModal}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-md shadow-teal-600/20 active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{language === 'bn' ? 'নতুন ব্যানার যোগ করুন' : 'Add New Banner'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Banner Cards List */}
+          <div className="space-y-3.5">
+            {[...banners]
+              .sort((a, b) => (a.order || 0) - (b.order || 0))
+              .map((banner, index, arr) => {
+                const categoryObj = categories.find((c) => c.slug === banner.linkCategory);
+
+                return (
+                  <div
+                    key={banner.id}
+                    className={`bg-white rounded-2xl border transition-all p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                      banner.isActive
+                        ? 'border-slate-200 hover:border-teal-400 shadow-xs'
+                        : 'border-slate-200/60 bg-slate-50/50 opacity-70'
+                    }`}
+                  >
+                    {/* Left: Thumbnail & Badges */}
+                    <div className="flex items-start sm:items-center space-x-4 w-full md:w-auto">
+                      {/* Thumbnail with sequence order */}
+                      <div className="relative w-28 sm:w-36 h-18 sm:h-22 rounded-xl overflow-hidden bg-slate-900 shrink-0 border border-slate-200">
+                        <img
+                          src={banner.imageUrl}
+                          alt={banner.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80';
+                          }}
+                        />
+                        <div className="absolute top-1 left-1 bg-slate-950/80 text-white font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                          #{banner.order || index + 1}
+                        </div>
+                        {banner.badge && (
+                          <div className="absolute bottom-1 left-1 right-1 bg-teal-500/90 text-slate-950 font-bold text-[9px] px-1 py-0.5 rounded truncate text-center">
+                            {banner.badge}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h4 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
+                            {banner.title}
+                          </h4>
+                          {banner.titleBn && (
+                            <span className="text-xs text-slate-500 font-medium">
+                              ({banner.titleBn})
+                            </span>
+                          )}
+                        </div>
+
+                        {banner.subtitle && (
+                          <p className="text-xs text-slate-600 line-clamp-2 max-w-xl mb-2">
+                            {banner.subtitle}
+                          </p>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                          {/* Target Category */}
+                          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium">
+                            <ExternalLink className="w-3 h-3 text-slate-400" />
+                            <span>
+                              {categoryObj ? categoryObj.name : banner.linkCategory || 'All Products'}
+                            </span>
+                          </span>
+
+                          {/* Button text */}
+                          <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 font-semibold text-[10px]">
+                            CTA: {banner.buttonText || 'Shop Now'}
+                          </span>
+
+                          {/* Status Badge */}
+                          <span
+                            className={`px-2 py-0.5 rounded-full font-bold text-[10px] flex items-center space-x-1 ${
+                              banner.isActive
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                banner.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                              }`}
+                            />
+                            <span>
+                              {banner.isActive
+                                ? language === 'bn'
+                                  ? 'সক্রিয় (Active)'
+                                  : 'Active'
+                                : language === 'bn'
+                                ? 'বন্ধ (Paused)'
+                                : 'Paused'}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Actions (Toggle, Reorder, Edit, Delete) */}
+                    <div className="flex items-center space-x-2 self-end md:self-center shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 w-full md:w-auto justify-end">
+                      {/* Active Toggle Switch */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleBannerActive(banner)}
+                        className={`p-2 rounded-xl text-xs font-semibold flex items-center space-x-1 border transition-colors ${
+                          banner.isActive
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        }`}
+                        title={banner.isActive ? 'Deactivate banner' : 'Activate banner'}
+                      >
+                        {banner.isActive ? (
+                          <ToggleRight className="w-5 h-5 text-emerald-600" />
+                        ) : (
+                          <ToggleLeft className="w-5 h-5 text-slate-400" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {banner.isActive ? 'Live' : 'Off'}
+                        </span>
+                      </button>
+
+                      {/* Reorder Up */}
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() => handleMoveBanner(index, 'up')}
+                        className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+
+                      {/* Reorder Down */}
+                      <button
+                        type="button"
+                        disabled={index === arr.length - 1}
+                        onClick={() => handleMoveBanner(index, 'down')}
+                        className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        title="Move Down"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+
+                      {/* Edit Button */}
+                      <button
+                        type="button"
+                        onClick={() => openEditBannerModal(banner)}
+                        className="p-2 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 transition-colors font-bold text-xs flex items-center space-x-1"
+                        title="Edit Banner"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </button>
+
+                      {/* Delete Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (banners.length <= 1) {
+                            showToast('You must keep at least one banner in the slider', 'error');
+                            return;
+                          }
+                          deleteBanner(banner.id);
+                        }}
+                        className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 transition-colors"
+                        title="Delete Banner"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Live Mobile/Desktop Store Preview */}
+          <div className="bg-slate-900 text-white rounded-3xl p-5 sm:p-7 border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Eye className="w-4 h-4 text-teal-400" />
+                <h4 className="text-sm font-bold text-white">
+                  {language === 'bn' ? 'লাইভ প্রিভিউ (হোমপেজে যেমন দেখাবে)' : 'Live Storefront Slider Preview'}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentView('home')}
+                className="text-xs text-teal-400 hover:text-teal-300 font-semibold flex items-center space-x-1"
+              >
+                <span>{language === 'bn' ? 'হোমপেজে যান' : 'Go to Homepage'}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl overflow-hidden border border-slate-700">
+              <BannerSlider />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner Add / Edit Modal */}
+      {showBannerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4">
+          <form
+            onSubmit={handleBannerSubmit}
+            className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {editingBanner
+                    ? (language === 'bn' ? 'ব্যানার এডিট করুন' : 'Edit Banner Slide')
+                    : (language === 'bn' ? 'নতুন ব্যানার যোগ করুন' : 'Add New Banner Slide')}
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  {language === 'bn'
+                    ? 'ছবি ও তথ্য দিন, সাথে সাথে হোমপেজে যুক্ত হবে।'
+                    : 'Set custom photo URL, headline, subtitle and target link.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBannerModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Inspiration Presets */}
+            <div className="bg-teal-50/60 p-3 rounded-2xl border border-teal-100 space-y-1.5">
+              <span className="text-[11px] font-bold text-teal-800 flex items-center space-x-1">
+                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                <span>{language === 'bn' ? '১-ক্লিকে প্রি-সেট ছবি ও টপিক বাছুন:' : 'Quick Presets (1-Click Fill):'}</span>
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {BANNER_PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setBTitle(preset.title);
+                      setBTitleBn(preset.titleBn);
+                      setBBadge(preset.badge);
+                      setBBadgeBn(preset.badgeBn);
+                      setBImage(preset.url);
+                      setBLinkCategory(preset.category);
+                      setBLinkView('category');
+                      showToast(`Preset "${preset.name}" loaded!`, 'info');
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white hover:bg-teal-600 hover:text-white text-slate-700 border border-teal-200 font-semibold text-[10px] transition-colors"
+                  >
+                    {language === 'bn' ? preset.nameBn : preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-3.5">
+              {/* Image URL & Live Preview */}
+              <div>
+                <label className="font-bold text-slate-800 block mb-1">
+                  Image URL / ছবির লিংক <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={bImage}
+                  onChange={(e) => setBImage(e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[11px] focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+
+                {/* Preview Thumbnail */}
+                {bImage && (
+                  <div className="mt-2 relative w-full h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                    <img
+                      src={bImage}
+                      alt="Banner Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80';
+                      }}
+                    />
+                    <div className="absolute top-2 left-2 bg-slate-900/80 text-teal-300 px-2 py-0.5 rounded text-[10px] font-bold">
+                      Image Preview
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Title EN & BN */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Banner Title (English) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={bTitle}
+                    onChange={(e) => setBTitle(e.target.value)}
+                    placeholder="Next-Gen Audio & Smart Tech"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    ব্যানার শিরোনাম (বাংলা - ঐচ্ছিক)
+                  </label>
+                  <input
+                    type="text"
+                    value={bTitleBn}
+                    onChange={(e) => setBTitleBn(e.target.value)}
+                    placeholder="নেক্সট-জেন অডিও ও স্মার্ট গ্যাজেট"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Subtitle EN & BN */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Subtitle / Description (English)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={bSubtitle}
+                    onChange={(e) => setBSubtitle(e.target.value)}
+                    placeholder="Up to 35% OFF on premium headphones and accessories..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    সাবটাইটেল / বিবরণ (বাংলা - ঐচ্ছিক)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={bSubtitleBn}
+                    onChange={(e) => setBSubtitleBn(e.target.value)}
+                    placeholder="অ্যাক্টিভ নয়েজ ক্যান্সেলিং ইয়ারবাডস ও স্মার্ট গ্যাজেটে বিশেষ অফার..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Badge & Target Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Badge Tag</label>
+                  <input
+                    type="text"
+                    value={bBadge}
+                    onChange={(e) => setBBadge(e.target.value)}
+                    placeholder="Special Offer"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Target Category / পেজ</label>
+                  <select
+                    value={bLinkCategory}
+                    onChange={(e) => setBLinkCategory(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-medium"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.slug}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Display Order (ক্রম)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={bOrder}
+                    onChange={(e) => setBOrder(parseInt(e.target.value) || 1)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Button Text & Active Toggle */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center pt-1">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">Button Text (EN)</label>
+                  <input
+                    type="text"
+                    value={bButtonText}
+                    onChange={(e) => setBButtonText(e.target.value)}
+                    placeholder="Shop Now"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">বাটন টেক্সট (বাংলা)</label>
+                  <input
+                    type="text"
+                    value={bButtonTextBn}
+                    onChange={(e) => setBButtonTextBn(e.target.value)}
+                    placeholder="এখনই দেখুন"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2 pt-4 sm:pt-6">
+                  <input
+                    type="checkbox"
+                    id="bannerActiveCheck"
+                    checked={bIsActive}
+                    onChange={(e) => setBIsActive(e.target.checked)}
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 w-4 h-4 cursor-pointer"
+                  />
+                  <label htmlFor="bannerActiveCheck" className="font-bold text-slate-800 cursor-pointer">
+                    সক্রিয় ব্যানার (Active)
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-2.5 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowBannerModal(false)}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold"
+              >
+                {language === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl shadow-md shadow-teal-600/20 active:scale-95 transition-all"
+              >
+                {editingBanner
+                  ? (language === 'bn' ? 'পরিবর্তন সংরক্ষণ করুন' : 'Save Changes')
+                  : (language === 'bn' ? 'ব্যানার সংরক্ষণ করুন' : 'Add Banner')}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* Product Add / Edit Modal */}

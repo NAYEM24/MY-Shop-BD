@@ -24,6 +24,10 @@ import { NotFoundPage } from './components/pages/NotFoundPage.tsx';
 const AppContent: React.FC = () => {
   const { currentView } = useShop();
 
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentView]);
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'home':

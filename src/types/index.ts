@@ -216,3 +216,21 @@ export interface StoreSettings {
   googleDriveEnabled: boolean;
   googleDriveFolder: string;
 }
+
+export interface BannerSlide {
+  id: string;
+  title: string;
+  titleBn?: string;
+  subtitle?: string;
+  subtitleBn?: string;
+  badge?: string;
+  badgeBn?: string;
+  imageUrl: string;
+  mobileImageUrl?: string;
+  linkView?: string; // 'shop' | 'category' | 'digital-library' etc.
+  linkCategory?: string; // category slug if linkView === 'category'
+  buttonText?: string;
+  buttonTextBn?: string;
+  isActive: boolean;
+  order: number;
+}

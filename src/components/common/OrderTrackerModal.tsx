@@ -190,8 +190,8 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({ isOpen, on
                         {language === 'bn' ? 'কুরিয়ারে হস্তান্তর (Pathao / Steadfast)' : 'Handed to Courier (Pathao / Steadfast)'}
                       </p>
                       <p className="text-[11px] text-slate-500">
-                        {searchedOrder.carrierTrackingNumber
-                          ? `Tracking: ${searchedOrder.carrierTrackingNumber}`
+                        {searchedOrder.tracking?.trackingNumber
+                          ? `Tracking: ${searchedOrder.tracking.trackingNumber}`
                           : 'Dispatched to customer location'}
                       </p>
                     </div>

@@ -4,6 +4,7 @@ import { Header } from './components/layout/Header.tsx';
 import { Footer } from './components/layout/Footer.tsx';
 import { NotificationToast } from './components/common/NotificationToast.tsx';
 import { MobileBottomNav } from './components/common/MobileBottomNav.tsx';
+import { WhatsAppLiveWidget } from './components/common/WhatsAppLiveWidget.tsx';
 
 // Pages
 import { HomePage } from './components/pages/HomePage.tsx';
@@ -106,6 +107,7 @@ const AppContent: React.FC = () => {
       <Header />
       <main className="flex-1">{renderCurrentView()}</main>
       <Footer />
+      <WhatsAppLiveWidget />
       <MobileBottomNav />
       <NotificationToast />
     </div>

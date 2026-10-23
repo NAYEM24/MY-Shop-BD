@@ -12,16 +12,22 @@ import {
   ShieldCheck,
   LogOut,
   ExternalLink,
+  MessageCircle,
+  Phone,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import { BANGLADESH_DIVISIONS } from '../../data/mockDatabase.ts';
 import { ShippingAddress } from '../../types/index.ts';
+import { RealTimeOrderTracker } from '../account/RealTimeOrderTracker.tsx';
+import { buildWhatsAppUrl, getGeneralWhatsAppMessage } from '../../utils/whatsapp.ts';
 
 export const AccountPage: React.FC = () => {
   const {
     user,
     orders,
     digitalEntitlements,
+    storeSettings,
+    language,
     setCurrentView,
     setSelectedOrderId,
     formatPrice,
@@ -128,7 +134,22 @@ export const AccountPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Direct WhatsApp Live Support Button */}
+          <a
+            href={buildWhatsAppUrl(
+              storeSettings.whatsappNumber || '01940320627',
+              getGeneralWhatsAppMessage(language, user.displayName)
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all hover:scale-[1.02]"
+            title="Chat with MY SHOP BD Customer Service on WhatsApp"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>WhatsApp Live: {storeSettings.whatsappNumber || '01940320627'}</span>
+          </a>
+
           <button
             type="button"
             onClick={() => setIsEditingProfile(!isEditingProfile)}
@@ -190,6 +211,11 @@ export const AccountPage: React.FC = () => {
           </div>
         </form>
       )}
+
+      {/* REAL-TIME ORDER TRACKER (Physical Parcels & Digital Vault Deliveries) */}
+      <section aria-label="Real-time Order Tracker">
+        <RealTimeOrderTracker />
+      </section>
 
       {/* Two Column Grid: Recent Orders + Saved Addresses */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -264,6 +264,10 @@ export const AdminDashboard: React.FC = () => {
 
   // Settings form state
   const [settingsForm, setSettingsForm] = useState(storeSettings);
+
+  useEffect(() => {
+    setSettingsForm(storeSettings);
+  }, [storeSettings]);
 
   // Guard: Admin authorization check
   if (!isAdmin) {
@@ -1093,6 +1097,20 @@ export const AdminDashboard: React.FC = () => {
                 value={settingsForm.contactPhone}
                 onChange={(e) => setSettingsForm({ ...settingsForm, contactPhone: e.target.value })}
                 className="w-full p-2.5 bg-slate-50 border rounded-xl"
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold text-slate-700 block mb-1 flex items-center justify-between">
+                <span>WhatsApp Live Support Number</span>
+                <span className="text-[10px] text-emerald-600 font-bold">Active: 01940320627</span>
+              </label>
+              <input
+                type="text"
+                value={settingsForm.whatsappNumber || '01940320627'}
+                onChange={(e) => setSettingsForm({ ...settingsForm, whatsappNumber: e.target.value })}
+                className="w-full p-2.5 bg-slate-50 border border-emerald-200 focus:border-emerald-500 rounded-xl font-mono text-emerald-950 font-semibold"
+                placeholder="01940320627"
               />
             </div>
 

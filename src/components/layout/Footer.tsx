@@ -11,11 +11,13 @@ import {
   Lock,
   ArrowRight,
   Sparkles,
+  MessageCircle,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
+import { buildWhatsAppUrl, getGeneralWhatsAppMessage } from '../../utils/whatsapp.ts';
 
 export const Footer: React.FC = () => {
-  const { setCurrentView, setSelectedCategorySlug, showToast } = useShop();
+  const { setCurrentView, setSelectedCategorySlug, showToast, storeSettings } = useShop();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterConsent, setNewsletterConsent] = useState(false);
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
@@ -107,6 +109,19 @@ export const Footer: React.FC = () => {
                 <Phone className="w-4 h-4 text-teal-400 flex-shrink-0" />
                 <span>+880 1711-000999 (Toll-free inside BD)</span>
               </div>
+              <a
+                href={buildWhatsAppUrl(
+                  storeSettings.whatsappNumber || '01940320627',
+                  getGeneralWhatsAppMessage()
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2.5 text-emerald-400 hover:text-emerald-300 transition-colors"
+                title="Chat on WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span className="font-semibold">WhatsApp Live: {storeSettings.whatsappNumber || '01940320627'}</span>
+              </a>
               <div className="flex items-center space-x-2.5">
                 <Mail className="w-4 h-4 text-teal-400 flex-shrink-0" />
                 <span>support@myshopbd.com</span>
@@ -189,6 +204,20 @@ export const Footer: React.FC = () => {
                 <button type="button" onClick={() => setCurrentView('orders')} className="hover:text-teal-400">
                   Track My Order
                 </button>
+              </li>
+              <li>
+                <a
+                  href={buildWhatsAppUrl(
+                    storeSettings.whatsappNumber || '01940320627',
+                    getGeneralWhatsAppMessage()
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-300 text-emerald-400 font-medium inline-flex items-center space-x-1"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>WhatsApp Live (01940320627)</span>
+                </a>
               </li>
               <li>
                 <button type="button" onClick={() => setCurrentView('digital-library')} className="hover:text-teal-400 font-medium text-teal-300">

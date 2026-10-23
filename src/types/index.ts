@@ -206,6 +206,7 @@ export interface StoreSettings {
   tagline: string;
   contactEmail: string;
   contactPhone: string;
+  whatsappNumber: string;
   officeAddress: string;
   insideDhakaShippingFee: number;
   outsideDhakaShippingFee: number;

@@ -22,6 +22,7 @@ import {
   DEFAULT_REVIEWS,
   DEFAULT_SETTINGS,
   INITIAL_DEFAULT_BANNERS,
+  DEFAULT_ORDERS,
 } from './initialData.ts';
 import {
   calculateOrderSummary,
@@ -223,12 +224,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [orders, setOrders] = useState<Order[]>(() => {
     const cached = localStorage.getItem(STORAGE_KEY_ORDERS);
-    return cached ? JSON.parse(cached) : [];
+    return cached && JSON.parse(cached).length > 0 ? JSON.parse(cached) : DEFAULT_ORDERS;
   });
 
   const [digitalEntitlements, setDigitalEntitlements] = useState<DigitalEntitlement[]>(() => {
     const cached = localStorage.getItem(STORAGE_KEY_ENTITLEMENTS);
-    return cached ? JSON.parse(cached) : [];
+    if (cached && JSON.parse(cached).length > 0) return JSON.parse(cached);
+    return [
+      {
+        id: 'ent_demo_01',
+        userId: 'user_nayem112',
+        orderId: 'ord_demo_digi_02',
+        productId: 'prod_digital_react_03',
+        productName: 'Full-Stack Web Development with React & Node Handbook',
+        downloadUrl: 'https://example.com/downloads/fullstack-guide.pdf',
+        fileName: 'full-stack-web-development-react-node.pdf',
+        fileSizeBytes: 14889779,
+        mimeType: 'application/pdf',
+        downloadCount: 1,
+        downloadLimit: 5,
+        unlockedAt: '2026-10-22T09:10:05Z',
+        isRevoked: false,
+        driveExported: true,
+        driveFileId: 'DRIVE_FILE_88921_SYNCED',
+      },
+    ];
   });
 
   const [reviews, setReviews] = useState<ProductReview[]>(() => {
@@ -254,12 +274,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: 'user_nayem112',
           email: 'nayemhosan112@gmail.com',
           displayName: 'Nayem Hosan',
-          phone: '+880 1711-234567',
+          phone: '01940320627',
           role: 'admin',
           savedAddresses: [
             {
               fullName: 'Nayem Hosan',
-              phone: '01711234567',
+              phone: '01940320627',
               division: 'Dhaka',
               district: 'Dhaka',
               upazilaOrArea: 'Gulshan 2',
@@ -767,11 +787,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCategories(DEFAULT_CATEGORIES);
     setCart([]);
     setWishlist([]);
+    setOrders(DEFAULT_ORDERS);
     setStoreSettings(DEFAULT_SETTINGS);
     setBanners(INITIAL_DEFAULT_BANNERS);
     localStorage.removeItem(STORAGE_KEY_PRODUCTS);
     localStorage.removeItem(STORAGE_KEY_CART);
     localStorage.removeItem(STORAGE_KEY_WISHLIST);
+    localStorage.removeItem(STORAGE_KEY_ORDERS);
     localStorage.removeItem(STORAGE_KEY_SETTINGS);
     localStorage.removeItem(STORAGE_KEY_BANNERS);
     showToast(language === 'bn' ? 'ডেমো ডেটা সফলভাবে রিস্টোর হয়েছে।' : 'Demo data restored to defaults!', 'success');

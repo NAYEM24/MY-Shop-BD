@@ -16,9 +16,11 @@ import {
   Box,
   Truck,
   ExternalLink,
+  MessageCircle,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import { OrderTrackerModal } from '../common/OrderTrackerModal.tsx';
+import { buildWhatsAppUrl, getGeneralWhatsAppMessage } from '../../utils/whatsapp.ts';
 
 export const Header: React.FC = () => {
   const {
@@ -38,6 +40,7 @@ export const Header: React.FC = () => {
     setSelectedProductSlug,
     setSelectedCategorySlug,
     formatPrice,
+    storeSettings,
     t,
   } = useShop();
 
@@ -118,6 +121,22 @@ export const Header: React.FC = () => {
                 <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-teal-400" />
                 <span className="hidden xs:inline">{t.trackOrder}</span>
               </button>
+
+              {/* WhatsApp Live Support Hotline */}
+              <a
+                href={buildWhatsAppUrl(
+                  storeSettings.whatsappNumber || '01940320627',
+                  getGeneralWhatsAppMessage()
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 font-medium transition-colors text-[10px] sm:text-xs"
+                title="Live WhatsApp Support"
+              >
+                <MessageCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">WhatsApp:</span>
+                <span className="font-mono font-semibold">{storeSettings.whatsappNumber || '01940320627'}</span>
+              </a>
 
               <div className="hidden md:flex items-center space-x-1 text-slate-400">
                 <PhoneCall className="w-3 h-3 text-teal-400" />
@@ -620,7 +639,21 @@ export const Header: React.FC = () => {
             </div>
 
             {/* Bottom info */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 space-y-2">
+            <div className="p-4 border-t border-slate-100 bg-slate-50 space-y-2.5">
+              {/* WhatsApp Live Support Button */}
+              <a
+                href={buildWhatsAppUrl(
+                  storeSettings.whatsappNumber || '01940320627',
+                  getGeneralWhatsAppMessage()
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-xs transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp Live: {storeSettings.whatsappNumber || '01940320627'}</span>
+              </a>
+
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-500">Language:</span>
                 <button

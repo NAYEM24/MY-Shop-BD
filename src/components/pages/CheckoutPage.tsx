@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CreditCard,
   Truck,
@@ -11,6 +11,7 @@ import {
   Lock,
   ArrowRight,
   ArrowLeft,
+  Sparkles,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import { BANGLADESH_DIVISIONS } from '../../data/mockDatabase.ts';
@@ -59,6 +60,13 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
+  // Auto fallback to bKash if user enters checkout with COD selected but cart is digital-only
+  useEffect(() => {
+    if (!orderSummary.hasPhysicalItems && paymentMethod === 'cod') {
+      setPaymentMethod('bkash');
+    }
+  }, [orderSummary.hasPhysicalItems, paymentMethod]);
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
@@ -71,8 +79,9 @@ export const CheckoutPage: React.FC = () => {
       errors.phone = 'Valid 11-digit Bangladeshi phone number required (e.g. 01711000000)';
     }
 
-    if (!shippingAddress.streetAddress.trim()) {
-      errors.streetAddress = 'Street address / House / Area is required';
+    // Street address is only strictly required if there are physical parcel items to deliver
+    if (orderSummary.hasPhysicalItems && !shippingAddress.streetAddress.trim()) {
+      errors.streetAddress = 'Street address / House / Area is required for physical courier delivery';
     }
 
     // Payment validation
@@ -253,18 +262,35 @@ export const CheckoutPage: React.FC = () => {
               {/* Detailed Street Address */}
               <div className="sm:col-span-2">
                 <label className="font-semibold text-slate-700 block mb-1">
-                  Street Address / House / Flat <span className="text-rose-500">*</span>
+                  Street Address / House / Flat{' '}
+                  {orderSummary.hasPhysicalItems ? (
+                    <span className="text-rose-500">*</span>
+                  ) : (
+                    <span className="text-slate-400 font-normal text-[11px]">(Optional for Digital Orders)</span>
+                  )}
                 </label>
                 <input
                   type="text"
-                  required
+                  required={orderSummary.hasPhysicalItems}
                   value={shippingAddress.streetAddress}
                   onChange={(e) => setShippingAddress({ ...shippingAddress, streetAddress: e.target.value })}
-                  placeholder="House 12, Road 5, Sector 3, Uttara, Dhaka"
+                  placeholder={
+                    orderSummary.hasPhysicalItems
+                      ? 'House 12, Road 5, Sector 3, Uttara, Dhaka'
+                      : 'Files will be delivered instantly to your customer vault & email'
+                  }
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 {addressErrors.streetAddress && (
                   <span className="text-[10px] text-rose-500 mt-1 block">{addressErrors.streetAddress}</span>
+                )}
+                {!orderSummary.hasPhysicalItems && (
+                  <div className="mt-2 p-2.5 bg-teal-50 border border-teal-200 rounded-xl flex items-center space-x-2 text-xs text-teal-800">
+                    <Sparkles className="w-4 h-4 text-teal-600 shrink-0" />
+                    <span>
+                      <strong>Instant Cloud Delivery:</strong> No courier shipment fee. Digital access is provisioned immediately upon bKash/Nagad verification.
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

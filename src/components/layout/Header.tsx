@@ -258,6 +258,7 @@ export const Header: React.FC = () => {
               onClick={() => setIsTrackerOpen(true)}
               className="md:hidden p-2 text-slate-600 hover:text-teal-600 rounded-xl"
               title={t.trackOrder}
+              aria-label={t.trackOrder}
             >
               <Truck className="w-5 h-5" />
             </button>

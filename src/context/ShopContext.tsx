@@ -127,7 +127,12 @@ interface ShopContextType {
   // Orders & Entitlements
   orders: Order[];
   placeOrder: (paymentMethod: PaymentMethod, paymentDetails?: Order['paymentDetails']) => Promise<Order>;
-  updateOrderStatus: (orderId: string, fulfillmentStatus: FulfillmentStatus, paymentStatus?: PaymentStatus) => void;
+  updateOrderStatus: (
+    orderId: string,
+    fulfillmentStatus: FulfillmentStatus,
+    paymentStatus?: PaymentStatus,
+    tracking?: Order['tracking']
+  ) => void;
   digitalEntitlements: DigitalEntitlement[];
   markEntitlementDownloaded: (entitlementId: string) => void;
   markEntitlementDriveExported: (entitlementId: string, driveFileId: string) => void;
@@ -672,26 +677,70 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateOrderStatus = (
     orderId: string,
     fulfillmentStatus: FulfillmentStatus,
-    paymentStatus?: PaymentStatus
+    paymentStatus?: PaymentStatus,
+    tracking?: Order['tracking']
   ) => {
     setOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
           const now = new Date().toISOString();
+          const effectivePayment = paymentStatus || ord.paymentStatus;
+          const effectiveTracking = tracking !== undefined ? tracking : ord.tracking;
+
           const updated: Order = {
             ...ord,
             fulfillmentStatus,
-            paymentStatus: paymentStatus || ord.paymentStatus,
+            paymentStatus: effectivePayment,
+            tracking: effectiveTracking,
             updatedAt: now,
             auditLogs: [
               ...ord.auditLogs,
               {
                 timestamp: now,
-                action: `Status updated to ${fulfillmentStatus}`,
+                action: `Status updated to ${fulfillmentStatus}${effectiveTracking?.trackingNumber ? ` (Tracking: ${effectiveTracking.trackingNumber})` : ''}`,
                 actor: user?.email || 'Admin',
               },
             ],
           };
+
+          // If paid or processing/shipped/delivered, unlock entitlements for digital items if not yet created
+          if (
+            effectivePayment === 'paid' ||
+            fulfillmentStatus === 'processing' ||
+            fulfillmentStatus === 'shipped' ||
+            fulfillmentStatus === 'delivered'
+          ) {
+            setDigitalEntitlements((eList) => {
+              const existingForOrder = eList.filter((e) => e.orderId === orderId);
+              if (existingForOrder.length === 0) {
+                const newEnts: DigitalEntitlement[] = [];
+                ord.items.forEach((item) => {
+                  if (item.type === 'digital') {
+                    const prod = products.find((p) => p.id === item.productId);
+                    if (prod?.digitalMetadata) {
+                      newEnts.push({
+                        id: 'ent_' + Math.random().toString(36).substring(2, 9),
+                        userId: ord.userId,
+                        orderId: ord.id,
+                        productId: item.productId,
+                        productName: item.productName,
+                        fileName: prod.digitalMetadata.fileName,
+                        mimeType: prod.digitalMetadata.mimeType,
+                        downloadCount: 0,
+                        downloadLimit: prod.digitalMetadata.downloadLimit,
+                        unlockedAt: now,
+                        isRevoked: false,
+                      });
+                    }
+                  }
+                });
+                return newEnts.length > 0 ? [...eList, ...newEnts] : eList;
+              } else {
+                // If it was cancelled previously and now reopened/paid, unrevoke
+                return eList.map((e) => (e.orderId === orderId ? { ...e, isRevoked: false } : e));
+              }
+            });
+          }
 
           // If transitioning to cancelled/refunded, revoke entitlements
           if (fulfillmentStatus === 'cancelled' || fulfillmentStatus === 'refunded') {

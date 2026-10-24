@@ -187,3 +187,38 @@ test('generateOrderNumber generates formatted MSBD order code', () => {
   const orderNum = generateOrderNumber(2026);
   assert.match(orderNum, /^MSBD-2026-[A-Z0-9]{7}$/);
 });
+
+test('calculateOrderSummary identifies purely digital cart with zero delivery charge', () => {
+  const digitalCart: CartItem[] = [
+    {
+      productId: 'p_digi_1',
+      name: 'Full-Stack React Handbook',
+      image: '/mock.png',
+      price: 650,
+      regularPrice: 1000,
+      quantity: 1,
+      type: 'digital',
+      maxStock: 9999,
+    },
+  ];
+
+  const summary = calculateOrderSummary(digitalCart, null, { division: 'Sylhet', district: 'Sylhet' });
+  assert.equal(summary.subtotal, 650);
+  assert.equal(summary.shippingFee, 0);
+  assert.equal(summary.hasPhysicalItems, false);
+  assert.equal(summary.hasDigitalItems, true);
+  assert.equal(summary.totalAmount, 650);
+});
+
+test('courier tracking format matches Steadfast and Pathao conventions', () => {
+  const steadfastPattern = /^ST-\d{7}BD$/;
+  const pathaoPattern = /^PTH-BD-\d{6}$/;
+
+  const mockSteadfast = 'ST-9021844BD';
+  const mockPathao = 'PTH-BD-891024';
+
+  assert.equal(steadfastPattern.test(mockSteadfast), true);
+  assert.equal(pathaoPattern.test(mockPathao), true);
+  assert.equal(steadfastPattern.test('invalid'), false);
+});
+

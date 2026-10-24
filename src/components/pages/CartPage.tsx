@@ -221,7 +221,11 @@ export const CartPage: React.FC = () => {
               <div className="flex justify-between text-slate-600">
                 <span>Delivery Charge</span>
                 <span className="font-mono font-semibold text-slate-900">
-                  {orderSummary.shippingFee === 0 ? (
+                  {!orderSummary.hasPhysicalItems ? (
+                    <span className="text-teal-700 font-bold bg-teal-50 px-2 py-0.5 rounded text-[11px] border border-teal-200">
+                      FREE (Digital Vault)
+                    </span>
+                  ) : orderSummary.shippingFee === 0 ? (
                     <span className="text-emerald-600 font-bold">FREE</span>
                   ) : (
                     formatPrice(orderSummary.shippingFee)

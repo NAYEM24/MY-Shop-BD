@@ -16,6 +16,7 @@ import {
   MessageSquare,
   AlertCircle,
   FolderDown,
+  Sparkles,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import { ProductViewer3D } from '../3d/ProductViewer3D.tsx';
@@ -359,24 +360,42 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Delivery & Reassurance Specs */}
           <div className="p-4 rounded-2xl bg-white border border-slate-200/80 space-y-2.5 text-xs text-slate-600">
-            <div className="flex items-center space-x-2.5">
-              <Truck className="w-4 h-4 text-teal-600 flex-shrink-0" />
-              <span>
-                <strong>Delivery in Bangladesh:</strong> Inside Dhaka (24-48h, Tk 60), Outside Dhaka (3-5 days, Tk 120).
-              </span>
-            </div>
+            {product.type === 'physical' ? (
+              <div className="flex items-center space-x-2.5">
+                <Truck className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                <span>
+                  <strong>Delivery in Bangladesh:</strong> Inside Dhaka (24-48h, Tk 60), Outside Dhaka (3-5 days, Tk 120). Pathao & Steadfast live tracking.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2.5">
+                <FolderDown className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                <span>
+                  <strong>Instant Cloud Delivery:</strong> Zero delivery charge. Immediate PDF download and one-click Google Drive backup.
+                </span>
+              </div>
+            )}
             <div className="flex items-center space-x-2.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
               <span>
-                <strong>100% Genuine Guaranteed:</strong> Official merchant warranty & verified origin.
+                <strong>100% Genuine Guaranteed:</strong> Official merchant warranty & authenticated license.
               </span>
             </div>
-            <div className="flex items-center space-x-2.5">
-              <RotateCcw className="w-4 h-4 text-sky-600 flex-shrink-0" />
-              <span>
-                <strong>7-Day Return Policy:</strong> Easy exchange or refund for defective physical items.
-              </span>
-            </div>
+            {product.type === 'physical' ? (
+              <div className="flex items-center space-x-2.5">
+                <RotateCcw className="w-4 h-4 text-sky-600 flex-shrink-0" />
+                <span>
+                  <strong>7-Day Return Policy:</strong> Easy exchange or refund for defective physical items.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2.5">
+                <Sparkles className="w-4 h-4 text-sky-600 flex-shrink-0" />
+                <span>
+                  <strong>Customer Vault Access:</strong> Download up to 5 times with permanent library sync.
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

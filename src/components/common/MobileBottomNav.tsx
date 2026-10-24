@@ -29,6 +29,7 @@ export const MobileBottomNav: React.FC = () => {
         <button
           type="button"
           onClick={() => setCurrentView('home')}
+          aria-label={t.home}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all ${
             isHomeActive
               ? 'text-teal-600 font-bold scale-105'
@@ -50,6 +51,7 @@ export const MobileBottomNav: React.FC = () => {
         <button
           type="button"
           onClick={() => setCurrentView('shop')}
+          aria-label={t.shop}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all ${
             isShopActive
               ? 'text-teal-600 font-bold scale-105'
@@ -71,6 +73,7 @@ export const MobileBottomNav: React.FC = () => {
         <button
           type="button"
           onClick={() => setCurrentView('wishlist')}
+          aria-label={t.wishlist}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all ${
             isWishlistActive
               ? 'text-rose-600 font-bold scale-105'
@@ -94,6 +97,7 @@ export const MobileBottomNav: React.FC = () => {
         <button
           type="button"
           onClick={() => setCurrentView('cart')}
+          aria-label={t.cart}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all ${
             isCartActive
               ? 'text-teal-600 font-bold scale-105'
@@ -116,6 +120,7 @@ export const MobileBottomNav: React.FC = () => {
         {/* 5. Account / Admin */}
         <button
           type="button"
+          aria-label={isAdmin ? 'Administrator Portal' : (user ? t.account : 'Sign In')}
           onClick={() => {
             if (isAdmin) {
               setCurrentView('admin-dashboard');

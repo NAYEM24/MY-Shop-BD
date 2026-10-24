@@ -437,10 +437,19 @@ export const AdminDashboard: React.FC = () => {
     showToast('Order marked as PAID and moved to Processing.', 'success');
   };
 
-  const handleQuickShip = (orderId: string) => {
-    const trackingCode = `PTH-BD-${Math.floor(100000 + Math.random() * 900000)}`;
-    updateOrderStatus(orderId, 'shipped', 'paid');
-    showToast(`Order dispatched via Pathao Courier! Tracking: ${trackingCode}`, 'success');
+  const handleQuickShip = (orderId: string, carrierName: 'Pathao Courier' | 'Steadfast Courier' = 'Pathao Courier') => {
+    const isSteadfast = carrierName === 'Steadfast Courier';
+    const trackingCode = isSteadfast
+      ? `ST-${Math.floor(1000000 + Math.random() * 9000000)}BD`
+      : `PTH-BD-${Math.floor(100000 + Math.random() * 900000)}`;
+    const now = new Date().toISOString();
+    updateOrderStatus(orderId, 'shipped', 'paid', {
+      carrier: carrierName,
+      trackingNumber: trackingCode,
+      shippedAt: now,
+      estimatedDelivery: '2-3 Business Days across BD',
+    });
+    showToast(`Order dispatched via ${carrierName}! Tracking: ${trackingCode}`, 'success');
   };
 
   const handleQuickDeliver = (orderId: string) => {

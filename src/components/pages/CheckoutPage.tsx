@@ -182,9 +182,10 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  autoComplete="name"
                   value={shippingAddress.fullName}
                   onChange={(e) => setShippingAddress({ ...shippingAddress, fullName: e.target.value })}
-                  placeholder="e.g. Nayem Hosan"
+                  placeholder={language === 'bn' ? 'আপনার পুরো নাম লিখুন' : 'Enter your full name (e.g. Rahim Ahmed)'}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 {addressErrors.fullName && (
@@ -199,9 +200,10 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="tel"
                   required
+                  autoComplete="tel"
                   value={shippingAddress.phone}
                   onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
-                  placeholder="01711-XXXXXX"
+                  placeholder={language === 'bn' ? '১১ ডিজিটের মোবাইল নম্বর (যেমন: 01712345678)' : '11-digit mobile number (e.g. 01712345678)'}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 {addressErrors.phone && (
@@ -254,7 +256,7 @@ export const CheckoutPage: React.FC = () => {
                   type="text"
                   value={shippingAddress.upazilaOrArea}
                   onChange={(e) => setShippingAddress({ ...shippingAddress, upazilaOrArea: e.target.value })}
-                  placeholder="e.g. Dhanmondi / Gulshan / Mirpur"
+                  placeholder={language === 'bn' ? 'থানা / উপজেলা / এলাকা (যেমন: মিরপুর, উত্তরা)' : 'Area / Upazila / Thana (e.g. Dhanmondi, Mirpur)'}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
@@ -272,12 +274,13 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="text"
                   required={orderSummary.hasPhysicalItems}
+                  autoComplete="street-address"
                   value={shippingAddress.streetAddress}
                   onChange={(e) => setShippingAddress({ ...shippingAddress, streetAddress: e.target.value })}
                   placeholder={
-                    orderSummary.hasPhysicalItems
-                      ? 'House 12, Road 5, Sector 3, Uttara, Dhaka'
-                      : 'Files will be delivered instantly to your customer vault & email'
+                    !orderSummary.hasPhysicalItems
+                      ? (language === 'bn' ? 'ডিজিটাল ফাইল সাথে সাথে আপনার অ্যাকাউন্টে পৌঁছে যাবে' : 'Files will be delivered instantly to your customer vault & email')
+                      : (language === 'bn' ? 'বাড়ি নং, রোড নং, এলাকা / গ্রাম / ফ্ল্যাট নং' : 'House no, Road no, Area / Village details')
                   }
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />

@@ -461,9 +461,9 @@ export const INITIAL_ORDERS: Order[] = [
   {
     id: 'ord_demo_phys_01',
     orderNumber: 'MSBD-2026-8841',
-    userEmail: 'nayemhosan112@gmail.com',
-    userPhone: '01940320627',
-    userId: 'user_nayem112',
+    userEmail: 'customer.rahim@gmail.com',
+    userPhone: '01711234567',
+    userId: 'user_cust_01',
     currency: 'BDT',
     items: [
       {
@@ -486,12 +486,12 @@ export const INITIAL_ORDERS: Order[] = [
       },
     ],
     shippingAddress: {
-      fullName: 'Nayem Hosan',
-      phone: '01940320627',
+      fullName: 'Rahim Ahmed',
+      phone: '01711234567',
       division: 'Dhaka',
       district: 'Dhaka',
-      upazilaOrArea: 'Gulshan 2',
-      streetAddress: 'House 14, Road 53, Gulshan-2, Dhaka',
+      upazilaOrArea: 'Banani',
+      streetAddress: 'House 14, Road 5, Block B, Banani, Dhaka',
     },
     subtotal: 6400,
     shippingFee: 0,
@@ -503,7 +503,7 @@ export const INITIAL_ORDERS: Order[] = [
     paymentDetails: {
       transactionId: 'TRX-BK-9X42L8',
       providerTrxId: '9A7K492LP0',
-      senderNumber: '01940320627',
+      senderNumber: '01711234567',
       paidAt: '2026-10-21T14:20:00Z',
       verifiedByServer: true,
       isTestMode: false,
@@ -518,7 +518,7 @@ export const INITIAL_ORDERS: Order[] = [
       {
         timestamp: '2026-10-21T14:15:00Z',
         action: 'order_placed',
-        actor: 'Customer (Nayem Hosan)',
+        actor: 'Customer (Rahim Ahmed)',
         notes: 'Order placed via bKash Online Checkout',
       },
       {
@@ -546,9 +546,9 @@ export const INITIAL_ORDERS: Order[] = [
   {
     id: 'ord_demo_digi_02',
     orderNumber: 'MSBD-2026-7209',
-    userEmail: 'nayemhosan112@gmail.com',
-    userPhone: '01940320627',
-    userId: 'user_nayem112',
+    userEmail: 'customer.tania@gmail.com',
+    userPhone: '01819876543',
+    userId: 'user_cust_02',
     currency: 'BDT',
     items: [
       {
@@ -573,12 +573,12 @@ export const INITIAL_ORDERS: Order[] = [
       },
     ],
     shippingAddress: {
-      fullName: 'Nayem Hosan',
-      phone: '01940320627',
+      fullName: 'Tania Sultana',
+      phone: '01819876543',
       division: 'Dhaka',
       district: 'Dhaka',
-      upazilaOrArea: 'Gulshan 2',
-      streetAddress: 'House 14, Road 53, Gulshan-2, Dhaka',
+      upazilaOrArea: 'Dhanmondi',
+      streetAddress: 'Flat 4B, Green Road, Dhanmondi, Dhaka',
     },
     subtotal: 1600,
     shippingFee: 0,
@@ -590,7 +590,7 @@ export const INITIAL_ORDERS: Order[] = [
     paymentDetails: {
       transactionId: 'TRX-NG-552190',
       providerTrxId: 'NG-881230',
-      senderNumber: '01940320627',
+      senderNumber: '01819876543',
       paidAt: '2026-10-22T09:10:00Z',
       verifiedByServer: true,
       isTestMode: false,
@@ -605,7 +605,7 @@ export const INITIAL_ORDERS: Order[] = [
       {
         timestamp: '2026-10-22T09:10:00Z',
         action: 'order_placed',
-        actor: 'Customer (Nayem Hosan)',
+        actor: 'Customer (Tania Sultana)',
         notes: 'Order placed for Digital Publication E-Books',
       },
       {

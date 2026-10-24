@@ -238,7 +238,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return [
       {
         id: 'ent_demo_01',
-        userId: 'user_nayem112',
+        userId: 'user_cust_02',
         orderId: 'ord_demo_digi_02',
         productId: 'prod_digital_react_03',
         productName: 'Full-Stack Web Development with React & Node Handbook',
@@ -273,26 +273,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [user, setUser] = useState<UserProfile | null>(() => {
     const cached = localStorage.getItem(STORAGE_KEY_USER);
-    return cached
-      ? JSON.parse(cached)
-      : {
-          uid: 'user_nayem112',
-          email: 'nayemhosan112@gmail.com',
-          displayName: 'Nayem Hosan',
-          phone: '01940320627',
-          role: 'admin',
-          savedAddresses: [
-            {
-              fullName: 'Nayem Hosan',
-              phone: '01940320627',
-              division: 'Dhaka',
-              district: 'Dhaka',
-              upazilaOrArea: 'Gulshan 2',
-              streetAddress: 'House 14, Road 53, Gulshan-2, Dhaka',
-            },
-          ],
-          createdAt: new Date().toISOString(),
-        };
+    if (!cached) return null;
+    try {
+      const parsed = JSON.parse(cached);
+      // Clean legacy hardcoded user so visitors are not automatically logged in as admin/developer
+      if (parsed?.uid === 'user_nayem112' || parsed?.email === 'nayemhosan112@gmail.com') {
+        localStorage.removeItem(STORAGE_KEY_USER);
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
   });
 
   const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(getCachedAccessToken());
@@ -301,18 +293,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [coupons] = useState<Coupon[]>(DEFAULT_COUPONS);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
 
-  // Address
+  // Address: Clean, empty fields by default for real customer entry
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>(() => {
-    if (user?.savedAddresses?.length) {
-      return user.savedAddresses[0];
-    }
     return {
-      fullName: 'Customer Name',
-      phone: '01711000000',
+      fullName: '',
+      phone: '',
       division: 'Dhaka',
       district: 'Dhaka',
-      upazilaOrArea: 'Dhanmondi',
-      streetAddress: 'House 24, Road 7/A, Dhanmondi',
+      upazilaOrArea: '',
+      streetAddress: '',
     };
   });
 

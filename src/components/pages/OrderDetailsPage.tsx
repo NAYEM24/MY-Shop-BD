@@ -10,10 +10,12 @@ import {
   ShieldCheck,
   AlertCircle,
   FileText,
+  Download,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import { saveOrderToGoogleDrive } from '../../services/driveService.ts';
 import { FulfillmentStatus } from '../../types/index.ts';
+import { printInvoicePdf, downloadInvoicePdf, downloadInvoiceHtmlFile } from '../../utils/invoiceGenerator.ts';
 
 export const OrderDetailsPage: React.FC = () => {
   const {
@@ -24,6 +26,8 @@ export const OrderDetailsPage: React.FC = () => {
     googleAccessToken,
     loginWithGoogle,
     showToast,
+    storeSettings,
+    language,
   } = useShop();
 
   const [isExporting, setIsExporting] = useState(false);
@@ -116,24 +120,52 @@ export const OrderDetailsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowDriveModal(true)}
-            disabled={isExporting}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow-xs"
+            onClick={async () => {
+              showToast(
+                language === 'bn' ? 'PDF ইনভয়েস ডাউনলোড হচ্ছে...' : 'Downloading PDF invoice...',
+                'info'
+              );
+              try {
+                const ok = await downloadInvoicePdf(order, storeSettings);
+                if (ok) {
+                  showToast(
+                    language === 'bn' ? 'ইনভয়েস PDF সফলভাবে ডাউনলোড হয়েছে!' : 'Invoice PDF downloaded successfully!',
+                    'success'
+                  );
+                }
+              } catch (err) {
+                console.error('PDF error:', err);
+                printInvoicePdf(order, storeSettings);
+              }
+            }}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow-xs"
+            title="Download PDF invoice file"
           >
-            <CloudUpload className="w-3.5 h-3.5 text-sky-400" />
-            <span>{isExporting ? 'Saving to Drive...' : 'Save to Drive'}</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>{language === 'bn' ? '১-ক্লিকে PDF ডাউনলোড' : '1-Click PDF Download'}</span>
           </button>
 
           <button
             type="button"
-            onClick={() => window.print()}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+            onClick={() => printInvoicePdf(order, storeSettings)}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+            title="Print invoice preview"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Print</span>
+            <span>{language === 'bn' ? 'প্রিন্ট' : 'Print'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowDriveModal(true)}
+            disabled={isExporting}
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow-xs"
+          >
+            <CloudUpload className="w-3.5 h-3.5 text-sky-400" />
+            <span>{isExporting ? 'Saving...' : 'Drive'}</span>
           </button>
         </div>
       </div>

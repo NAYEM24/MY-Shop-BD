@@ -28,6 +28,9 @@ import {
   Eye,
   Check,
   ExternalLink,
+  Calendar,
+  Printer,
+  FileText,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import {
@@ -40,6 +43,8 @@ import {
 } from '../../types/index.ts';
 import { INITIAL_DEFAULT_BANNERS } from '../../context/initialData.ts';
 import { BannerSlider } from '../common/BannerSlider.tsx';
+import { DailyOrdersLog } from '../admin/DailyOrdersLog.tsx';
+import { printInvoicePdf, downloadInvoicePdf, downloadInvoiceHtmlFile } from '../../utils/invoiceGenerator.ts';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -68,7 +73,7 @@ export const AdminDashboard: React.FC = () => {
   } = useShop();
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'products' | 'orders' | 'banners' | 'reviews' | 'settings'
+    'overview' | 'daily-log' | 'products' | 'orders' | 'banners' | 'reviews' | 'settings'
   >('overview');
 
   // Banner management state
@@ -593,8 +598,13 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs font-semibold text-slate-600 no-scrollbar">
         {[
           { key: 'overview', label: 'Overview', icon: LayoutDashboard },
+          {
+            key: 'daily-log',
+            label: language === 'bn' ? `দৈনিক অর্ডার লগ (${orders.length})` : `Daily Orders Log (${orders.length})`,
+            icon: Calendar,
+          },
+          { key: 'orders', label: `All Orders (${orders.length})`, icon: ShoppingBag },
           { key: 'banners', label: `Banners / ব্যানার (${banners.length})`, icon: ImageIcon },
-          { key: 'orders', label: `Orders (${orders.length})`, icon: ShoppingBag },
           { key: 'products', label: `Products (${products.length})`, icon: Package },
           { key: 'reviews', label: `Reviews (${reviews.length})`, icon: Star },
           { key: 'settings', label: 'Settings & Shipping', icon: Settings },
@@ -722,6 +732,17 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* TAB 1.5: DAILY ORDERS LOG & BREAKDOWN (কোন দিন কত অর্ডার আসলো) */}
+      {activeTab === 'daily-log' && (
+        <DailyOrdersLog
+          orders={orders}
+          formatPrice={formatPrice}
+          storeSettings={storeSettings}
+          showToast={showToast}
+          language={language}
+        />
+      )}
+
       {/* TAB 2: ORDERS MANAGEMENT WITH 1-CLICK FAST ACTIONS */}
       {activeTab === 'orders' && (
         <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-5">
@@ -833,61 +854,111 @@ export const AdminDashboard: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* 1-Click Fast Actions */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200/50">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[11px] font-bold text-slate-500">Quick Actions:</span>
+                    {/* 1-Click Fast Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200/50">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] font-bold text-slate-500">Quick Actions:</span>
 
-                      {ord.paymentStatus !== 'paid' && (
+                        {/* 1-Click PDF Invoice Direct Download */}
                         <button
                           type="button"
-                          onClick={() => handleQuickMarkPaid(ord.id)}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                          onClick={async () => {
+                            showToast(
+                              language === 'bn'
+                                ? `${ord.orderNumber} এর জন্য PDF ডাউনলোড হচ্ছে...`
+                                : `Downloading PDF invoice for ${ord.orderNumber}...`,
+                              'info'
+                            );
+                            try {
+                              const ok = await downloadInvoicePdf(ord, storeSettings);
+                              if (ok) {
+                                showToast(
+                                  language === 'bn'
+                                    ? `${ord.orderNumber} এর PDF ইনভয়েস ডাউনলোড সফল!`
+                                    : `PDF invoice for ${ord.orderNumber} downloaded!`,
+                                  'success'
+                                );
+                              } else {
+                                showToast(
+                                  language === 'bn'
+                                    ? `${ord.orderNumber} এর ইনভয়েস ফাইল ডাউনলোড সম্পন্ন!`
+                                    : `Invoice file downloaded!`,
+                                  'success'
+                                );
+                              }
+                            } catch (err) {
+                              console.error('PDF download error:', err);
+                              printInvoicePdf(ord, storeSettings);
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1 shadow-xs transition-all active:scale-95"
+                          title="Download PDF Invoice"
                         >
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Mark Paid</span>
+                          <Download className="w-3 h-3" />
+                          <span>{language === 'bn' ? 'পিডিএফ ডাউনলোড' : 'PDF Download'}</span>
                         </button>
-                      )}
 
-                      {ord.fulfillmentStatus !== 'shipped' && ord.fulfillmentStatus !== 'delivered' && (
                         <button
                           type="button"
-                          onClick={() => handleQuickShip(ord.id)}
-                          className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                          onClick={() => {
+                            printInvoicePdf(ord, storeSettings);
+                          }}
+                          className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[11px]"
+                          title="Print Invoice"
                         >
-                          <Truck className="w-3 h-3" />
-                          <span>Ship (Pathao)</span>
+                          <Printer className="w-3 h-3" />
                         </button>
-                      )}
 
-                      {ord.fulfillmentStatus !== 'delivered' && (
-                        <button
-                          type="button"
-                          onClick={() => handleQuickDeliver(ord.id)}
-                          className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
-                        >
-                          <Package className="w-3 h-3" />
-                          <span>Mark Delivered</span>
-                        </button>
-                      )}
+                        {ord.paymentStatus !== 'paid' && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickMarkPaid(ord.id)}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Mark Paid</span>
+                          </button>
+                        )}
 
-                      {ord.fulfillmentStatus !== 'cancelled' && (
-                        <button
-                          type="button"
-                          onClick={() => handleQuickCancel(ord.id)}
-                          className="px-2.5 py-1 bg-slate-200 hover:bg-rose-100 hover:text-rose-700 text-slate-700 rounded-lg text-[11px] font-bold"
-                        >
-                          Cancel
-                        </button>
-                      )}
+                        {ord.fulfillmentStatus !== 'shipped' && ord.fulfillmentStatus !== 'delivered' && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickShip(ord.id)}
+                            className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                          >
+                            <Truck className="w-3 h-3" />
+                            <span>Ship (Pathao)</span>
+                          </button>
+                        )}
+
+                        {ord.fulfillmentStatus !== 'delivered' && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickDeliver(ord.id)}
+                            className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                          >
+                            <Package className="w-3 h-3" />
+                            <span>Mark Delivered</span>
+                          </button>
+                        )}
+
+                        {ord.fulfillmentStatus !== 'cancelled' && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickCancel(ord.id)}
+                            className="px-2.5 py-1 bg-slate-200 hover:bg-rose-100 hover:text-rose-700 text-slate-700 rounded-lg text-[11px] font-bold"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(ord.createdAt).toLocaleString('en-GB')}
+                        </span>
+                      </div>
                     </div>
-
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[10px] text-slate-400">
-                        {new Date(ord.createdAt).toLocaleString('en-GB')}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               ))
             )}

@@ -10,9 +10,11 @@ import {
   ArrowRight,
   ShieldCheck,
   FileText,
+  Download,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext.tsx';
 import { saveOrderToGoogleDrive } from '../../services/driveService.ts';
+import { printInvoicePdf, downloadInvoicePdf, downloadInvoiceHtmlFile } from '../../utils/invoiceGenerator.ts';
 
 export const OrderSuccessPage: React.FC = () => {
   const {
@@ -23,9 +25,12 @@ export const OrderSuccessPage: React.FC = () => {
     googleAccessToken,
     loginWithGoogle,
     showToast,
+    storeSettings,
+    language,
   } = useShop();
 
   const [isExportingToDrive, setIsExportingToDrive] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [driveSavedLink, setDriveSavedLink] = useState<string | null>(null);
   const [showDriveConfirmModal, setShowDriveConfirmModal] = useState(false);
 
@@ -65,14 +70,19 @@ export const OrderSuccessPage: React.FC = () => {
       showToast('Connecting to your Google Drive account...', 'info');
       try {
         await loginWithGoogle();
-      } catch {
-        return;
+      } catch (authErr: any) {
+        if (authErr?.message?.includes('unauthorized-domain')) {
+          showToast('Custom domain requires Firebase Authorized Domains. Direct PDF invoice is ready!', 'info');
+          printInvoicePdf(order, storeSettings);
+          return;
+        }
       }
     }
 
     const token = googleAccessToken;
     if (!token) {
-      showToast('Please sign in with Google to enable Drive backup.', 'error');
+      showToast('Downloading direct PDF invoice...', 'info');
+      printInvoicePdf(order, storeSettings);
       return;
     }
 
@@ -82,7 +92,8 @@ export const OrderSuccessPage: React.FC = () => {
       setDriveSavedLink(driveFile.webViewLink || '#');
       showToast('Official order invoice successfully backed up to your Google Drive!', 'success');
     } catch (err: any) {
-      showToast(`Drive export error: ${err?.message || 'Failed to save file'}`, 'error');
+      showToast(`Drive export note: Downloading direct PDF invoice instead.`, 'info');
+      printInvoicePdf(order, storeSettings);
     } finally {
       setIsExportingToDrive(false);
     }
@@ -118,42 +129,106 @@ export const OrderSuccessPage: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-          {hasDigitalItems && (
-            <button
-              type="button"
-              onClick={() => setCurrentView('digital-library')}
-              className="px-6 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold flex items-center space-x-2 shadow-md transition-all active:scale-95"
-            >
-              <FolderDown className="w-4 h-4" />
-              <span>Access My Digital Library</span>
-            </button>
-          )}
+          {/* PRIMARY ACTION: Direct 1-Click PDF Invoice Download */}
+          <button
+            type="button"
+            disabled={isDownloadingPdf}
+            onClick={async () => {
+              if (isDownloadingPdf) return;
+              setIsDownloadingPdf(true);
+              showToast(
+                language === 'bn' ? 'অফিসিয়াল PDF ইনভয়েস ডাউনলোড হচ্ছে...' : 'Downloading PDF invoice...',
+                'info'
+              );
+              try {
+                const ok = await downloadInvoicePdf(order, storeSettings);
+                if (ok) {
+                  showToast(
+                    language === 'bn' ? 'ইনভয়েস PDF সফলভাবে ডাউনলোড হয়েছে!' : 'Invoice PDF downloaded successfully!',
+                    'success'
+                  );
+                } else {
+                  showToast(
+                    language === 'bn' ? 'ইনভয়েস ফাইল ডাউনলোড সম্পন্ন!' : 'Invoice file downloaded!',
+                    'success'
+                  );
+                }
+              } catch (err) {
+                console.error('PDF download error:', err);
+                printInvoicePdf(order, storeSettings);
+              } finally {
+                setIsDownloadingPdf(false);
+              }
+            }}
+            className="px-6 py-3 bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white rounded-xl text-xs font-extrabold flex items-center space-x-2 shadow-md transition-all active:scale-95"
+            title="Download PDF Invoice"
+          >
+            <Download className="w-4 h-4" />
+            <span>
+              {isDownloadingPdf
+                ? language === 'bn' ? 'ডাউনলোড হচ্ছে...' : 'Downloading...'
+                : language === 'bn' ? 'PDF ইনভয়েস ডাউনলোড করুন' : 'Download PDF Invoice'}
+            </span>
+          </button>
 
-          {/* Google Drive Backup Button (Google Workspace Integration) */}
+          {/* Print Option */}
+          <button
+            type="button"
+            onClick={() => {
+              printInvoicePdf(order, storeSettings);
+            }}
+            className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+            title="Print invoice"
+          >
+            <Printer className="w-4 h-4" />
+            <span>{language === 'bn' ? 'প্রিন্ট করুন' : 'Print'}</span>
+          </button>
+
+          {/* Download Offline File */}
+          <button
+            type="button"
+            onClick={() => {
+              downloadInvoiceHtmlFile(order, storeSettings);
+              showToast(
+                language === 'bn' ? 'ইনভয়েস ফাইল ডাউনলোড সম্পন্ন!' : 'Invoice file downloaded!',
+                'success'
+              );
+            }}
+            className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+            title="Download offline invoice"
+          >
+            <Download className="w-4 h-4" />
+            <span>{language === 'bn' ? 'অফলাইন ফাইল' : 'Offline File'}</span>
+          </button>
+
+          {/* Google Drive Backup Button (Optional Google Workspace Integration) */}
           <button
             type="button"
             onClick={() => setShowDriveConfirmModal(true)}
             disabled={isExportingToDrive}
             className="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center space-x-2 shadow-sm transition-all"
+            title="Backup to Google Drive"
           >
             <CloudUpload className="w-4 h-4 text-sky-400" />
             <span>
               {isExportingToDrive
-                ? 'Backing up to Google Drive...'
+                ? 'Backing up to Drive...'
                 : driveSavedLink
                 ? 'Saved to Drive ✓'
-                : 'Save Invoice to Google Drive'}
+                : 'Save to Google Drive'}
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Invoice</span>
-          </button>
+          {hasDigitalItems && (
+            <button
+              type="button"
+              onClick={() => setCurrentView('digital-library')}
+              className="px-5 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold flex items-center space-x-2 shadow-sm transition-all active:scale-95"
+            >
+              <FolderDown className="w-4 h-4" />
+              <span>Access Digital Files</span>
+            </button>
+          )}
         </div>
 
         {driveSavedLink && (

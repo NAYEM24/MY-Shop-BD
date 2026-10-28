@@ -22,6 +22,69 @@ import { AdminDashboard } from './components/pages/AdminDashboard.tsx';
 import { PolicyPages } from './components/pages/PolicyPages.tsx';
 import { NotFoundPage } from './components/pages/NotFoundPage.tsx';
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ErrorBoundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-xl mx-auto my-16 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-4">
+          <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+            !
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">
+            সাময়িক যান্ত্রিক ত্রুটি হয়েছে (An error occurred)
+          </h2>
+          <p className="text-xs text-slate-500">
+            দুঃখিত, পেজটি লোড করতে সমস্যা হয়েছে। দয়া করে নিচের বাটনে ক্লিক করে পুনরায় চেষ্টা করুন অথবা হোয়াটসঅ্যাপে যোগাযোগ করুন।
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false });
+                window.location.href = '/';
+              }}
+              className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+            >
+              হোমপেজে ফিরে যান (Return Home)
+            </button>
+            <a
+              href="https://wa.me/8801940320627?text=Assalamu%20Alaikum,%20I%20need%20support%20on%20MY%20SHOP%20BD"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center"
+            >
+              WhatsApp Support (01940320627)
+            </a>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const AppContent: React.FC = () => {
   const { currentView } = useShop();
 
@@ -105,7 +168,9 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-teal-500 selection:text-white pb-20 md:pb-0">
       <Header />
-      <main className="flex-1">{renderCurrentView()}</main>
+      <main className="flex-1">
+        <ErrorBoundary key={currentView}>{renderCurrentView()}</ErrorBoundary>
+      </main>
       <Footer />
       <WhatsAppLiveWidget />
       <MobileBottomNav />

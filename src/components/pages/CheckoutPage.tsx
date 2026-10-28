@@ -29,6 +29,8 @@ export const CheckoutPage: React.FC = () => {
     setCurrentView,
     storeSettings,
     showToast,
+    language,
+    t,
   } = useShop();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bkash');
